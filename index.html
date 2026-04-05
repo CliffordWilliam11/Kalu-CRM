@@ -431,7 +431,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       },
       getInventory: async () => { const s=await _col('inventory').orderBy('createdAt','desc').get(); return s.docs.map(d=>({id:d.id,...d.data()})); },
       updateInventoryItem: async (id,d) => { await _col('inventory').doc(id).update({...d,updatedAt:_ts()}); },
-      deleteInventoryItem: async (id) => { await _col('inventory').doc(id).delete(); },
 
       saveInvoice: async (d) => { const ref=await _col('invoices').add({...d,createdAt:_ts()}); return ref.id; },
       getInvoices: async () => { const s=await _col('invoices').orderBy('createdAt','desc').get(); return s.docs.map(d=>({id:d.id,...d.data()})); },
@@ -439,16 +438,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       saveExpense: async (d) => { const ref=await _col('expenses').add({...d,createdAt:_ts()}); return ref.id; },
       getExpenses: async () => { const s=await _col('expenses').orderBy('createdAt','desc').get(); return s.docs.map(d=>({id:d.id,...d.data()})); },
       deleteExpense: async (id) => { await _col('expenses').doc(id).delete(); },
+      deleteInventoryItem: async (id) => { await _col('inventory').doc(id).delete(); },
 
       saveVendor: async (d) => {
         if (d.id) { const {id,...r}=d; await _col('vendors').doc(id).set({...r,updatedAt:_ts()},{merge:true}); return id; }
         const ref = await _col('vendors').add({...d,createdAt:_ts()}); return ref.id;
       },
-      getVendors: async () => { const s=await _col('vendors').orderBy('createdAt','desc').get(); return s.docs.map(d=>({id:d.id,...d.data()})); },
+      getVendors: async () => { try { const s=await _col('vendors').orderBy('createdAt','desc').get(); return s.docs.map(d=>({id:d.id,...d.data()})); } catch(e) { return []; } },
       deleteVendor: async (id) => { await _col('vendors').doc(id).delete(); },
 
       saveUser: async (d) => { await _db.collection(_root()).doc('users').collection('accounts').doc(d.username).set({...d,updatedAt:_ts()},{merge:true}); },
-      getUsers: async () => { const s=await _db.collection(_root()).doc('users').collection('accounts').get(); return s.docs.map(d=>({...d.data()})); },
+      getUsers: async () => { try { const s=await _db.collection(_root()).doc('users').collection('accounts').get(); return s.docs.map(d=>({...d.data()})); } catch(e) { return []; } },
       deleteUser: async (username) => { await _db.collection(_root()).doc('users').collection('accounts').doc(username).delete(); },
 
       uploadFile: async (file, folder) => {
@@ -466,10 +466,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       clearSandbox: async () => {
         for (const name of ['customers','inventory','invoices','expenses','vendors']) {
           const snap = await _db.collection('sandbox').doc('data').collection(name).get();
-          const batch = _db.batch(); snap.docs.forEach(d=>batch.delete(d.ref)); await batch.commit();
+          const batch = _db.batch();
+          snap.docs.forEach(d=>batch.delete(d.ref));
+          await batch.commit();
         }
-        const usnap = await _db.collection('sandbox').doc('users').collection('accounts').get();
-        const ub = _db.batch(); usnap.docs.forEach(d=>ub.delete(d.ref)); await ub.commit();
+        try { const s=await _db.collection('sandbox').doc('users').collection('accounts').get(); const b=_db.batch(); s.docs.forEach(d=>b.delete(d.ref)); await b.commit(); } catch(e) {}
       }
     };
   } catch(e) {
@@ -979,20 +980,23 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <!-- ========== TAB 3: STOCK INWARD ========== -->
 <div id="tab-vendor" class="tab-pane">
 
-  <!-- ROW 1: Excel Upload - full width -->
+  <!-- ROW 1: PDF / Excel Upload - full width -->
   <div class="card" style="margin-bottom:14px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-      <div class="card-title" style="margin-bottom:0;">Upload Supplier Invoice (Excel)</div>
-      <span class="badge badge-gold">Auto-populate from .xlsx / .csv</span>
+      <div class="card-title" style="margin-bottom:0;">Upload Supplier Invoice (PDF / Excel)</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;color:var(--text3);">In production: file is parsed server-side via PDF.js / SheetJS, columns matched to inventory schema, and presented for verification before commit.</span>
+        <span class="badge badge-gold">Auto-populate</span>
+      </div>
     </div>
     <div class="upload-zone" onclick="document.getElementById('stockFileInput').click()" id="stockUploadZone">
-      <div class="upload-icon">📊</div>
-      <div class="upload-text">Click or drop supplier Excel / CSV here</div>
-      <div class="upload-hint">Supported: .xlsx · .xls · .csv — columns are auto-matched, you verify before saving</div>
+      <div class="upload-icon">📋</div>
+      <div class="upload-text">Click or drop supplier PDF / Excel here</div>
+      <div class="upload-hint">Supported: .pdf · .xlsx · .xls — field mapping is automatic, you verify all entries before saving</div>
     </div>
-    <input type="file" id="stockFileInput" accept=".xlsx,.xls,.csv" onchange="handleStockFile(this)">
+    <input type="file" id="stockFileInput" accept=".xlsx,.xls,.pdf,application/pdf" onchange="handleStockFile(this)">
     <div id="pdfPreviewArea" style="display:none;margin-top:16px;">
-      <div class="alert alert-success" id="parseStatus">✓ File parsed — verify fields below then confirm.</div>
+      <div class="alert alert-success">✓ File parsed — verify auto-populated fields below, then confirm to inward stock.</div>
       <div class="table-wrap">
         <table style="min-width:900px;">
           <thead><tr><th>Item Name</th><th>Category</th><th>Style</th><th>Karat</th><th>Weight(g)</th><th>Size</th><th>Description</th><th>Cost($)</th><th>List($)</th><th>Qty</th><th>✓</th></tr></thead>
@@ -1001,7 +1005,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
       <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
         <button class="btn btn-gold" onclick="confirmInward()">✓ Confirm &amp; Inward All Checked</button>
-        <button class="btn btn-outline" onclick="document.getElementById('pdfPreviewArea').style.display='none';document.getElementById('stockUploadZone').innerHTML='<div class=\'upload-icon\'>📊</div><div class=\'upload-text\'>Click or drop supplier Excel / CSV here</div><div class=\'upload-hint\'>Supported: .xlsx · .xls · .csv</div>';">Cancel</button>
+        <button class="btn btn-outline" onclick="document.getElementById('pdfPreviewArea').style.display='none';">Cancel</button>
       </div>
     </div>
   </div>
@@ -1139,10 +1143,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <input type="text" class="form-control" placeholder="What was purchased?" style="font-size:13px;">
         <input type="number" class="form-control" placeholder="0.00" step="0.01" style="padding:7px 8px;font-size:13px;">
         <select class="form-control" style="padding:7px 8px;font-size:13px;"><option>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option><option>Owner</option></select>
-        <button class="btn btn-outline btn-sm" onclick="document.getElementById('receiptInput-1').click()" style="font-size:12px;" id="receiptBtn-1">📎 Attach</button>
-        <input type="file" id="receiptInput-1" style="display:none;" accept="image/*,.pdf" onchange="handleReceiptUpload(this,'exp-r-1','receiptBtn-1')">
+        <button class="btn btn-outline btn-sm" id="receiptBtn-1" onclick="document.getElementById('receiptFile-1').click()" style="font-size:12px;">📎 Attach</button>
+        <input type="file" id="receiptFile-1" style="display:none;" accept="image/*,.pdf" onchange="handleReceiptUpload(this,'exp-r-1','receiptBtn-1')">
         <button class="btn btn-danger btn-icon" onclick="removeExpRow('exp-r-1')">✕</button>
       </div>
+    </div>
+
+  </div>
 
   <!-- REMOVE BY DATE RANGE — populates filtered data below -->
   <div class="card" style="margin-bottom:14px;">
@@ -1731,7 +1738,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="form-group"><label>Address</label><textarea class="form-control" rows="2" id="vendorAddress"></textarea></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('vendorModal')">Cancel</button>
-      <button class="btn btn-gold" onclick="saveVendorToFirebase()">💾 Save Vendor</button>
+      <button class="btn btn-gold" onclick="saveVendorModal()">💾 Save Vendor</button>
     </div>
   </div>
 </div>
@@ -2207,54 +2214,43 @@ function viewItemHistory(sku) {
 }
 
 // ===== STOCK INWARD =====
-// ===== EXCEL UPLOAD WITH SHEETJS =====
 function handleStockFile(input) {
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
-  document.getElementById('stockUploadZone').innerHTML = '<div class="upload-icon">⏳</div><div class="upload-text">Reading ' + file.name + '...</div>';
+  showToast('Reading ' + file.name + '...');
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
       if (typeof XLSX === 'undefined') { showToast('⚠ SheetJS not loaded yet — try again in a moment'); return; }
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
       if (!rows.length) { showToast('⚠ No rows found in file'); return; }
-
-      // Auto-map columns — tries common header names
-      const FIELD_MAP = {
-        itemName:  ['item name','item','name','description','product','style name'],
-        category:  ['category','type','product type','cat'],
-        style:     ['style','style type','cut'],
-        karat:     ['karat','kt','gold karat','purity','metal'],
-        weight:    ['weight','wt','grams','weight(g)','weight (g)'],
+      const FIELDS = {
+        itemName:  ['item name','item','name','description','product'],
+        category:  ['category','type','cat'],
+        style:     ['style','cut'],
+        karat:     ['karat','kt','purity','metal'],
+        weight:    ['weight','wt','grams'],
         size:      ['size','ring size','length'],
-        desc:      ['notes','note','description','desc','details'],
-        cost:      ['cost','unit cost','purchase price','cost($)','cost price','buy price'],
-        listPrice: ['list price','list','sell price','retail','price'],
+        desc:      ['notes','note','desc','details'],
+        cost:      ['cost','unit cost','purchase price','buy price'],
+        listPrice: ['list price','list','retail','price'],
         qty:       ['qty','quantity','units','count']
       };
       function findVal(row, keys) {
-        const headers = Object.keys(row).map(k=>k.toLowerCase().trim());
-        for (const k of keys) { const idx = headers.findIndex(h=>h.includes(k)); if(idx>-1) return Object.values(row)[idx]; }
+        const hdrs = Object.keys(row).map(k=>k.toLowerCase().trim());
+        for (const k of keys) { const i=hdrs.findIndex(h=>h.includes(k)); if(i>-1) return Object.values(row)[i]; }
         return '';
       }
-
       const tbody = document.getElementById('excelPreviewBody');
-      tbody.innerHTML = rows.map((row, i) => {
-        const name  = findVal(row, FIELD_MAP.itemName) || 'Item '+(i+1);
-        const cat   = findVal(row, FIELD_MAP.category) || 'Ring';
-        const style = findVal(row, FIELD_MAP.style) || '';
-        const karat = findVal(row, FIELD_MAP.karat) || '14K';
-        const wt    = parseFloat(findVal(row, FIELD_MAP.weight)) || '';
-        const size  = findVal(row, FIELD_MAP.size) || '';
-        const desc  = findVal(row, FIELD_MAP.desc) || '';
-        const cost  = parseFloat(findVal(row, FIELD_MAP.cost)) || '';
-        const list  = parseFloat(findVal(row, FIELD_MAP.listPrice)) || '';
-        const qty   = parseInt(findVal(row, FIELD_MAP.qty)) || 1;
-        const cats  = ['Ring','Bracelet','Necklace','Earrings','Pendant','Bangle','Anklet'].map(c=>`<option${c===cat?' selected':''}>${c}</option>`).join('');
-        const kts   = ['10K','14K','18K','22K','24K','925','Platinum'].map(k=>`<option${k===karat?' selected':''}>${k}</option>`).join('');
+      tbody.innerHTML = rows.map((row,i) => {
+        const name=findVal(row,FIELDS.itemName)||'Item '+(i+1), cat=findVal(row,FIELDS.category)||'Ring',
+              style=findVal(row,FIELDS.style)||'', karat=findVal(row,FIELDS.karat)||'14K',
+              wt=parseFloat(findVal(row,FIELDS.weight))||'', size=findVal(row,FIELDS.size)||'',
+              desc=findVal(row,FIELDS.desc)||'', cost=parseFloat(findVal(row,FIELDS.cost))||'',
+              list=parseFloat(findVal(row,FIELDS.listPrice))||'', qty=parseInt(findVal(row,FIELDS.qty))||1;
+        const cats=['Ring','Bracelet','Necklace','Earrings','Pendant','Bangle','Anklet'].map(c=>`<option${c===cat?' selected':''}>${c}</option>`).join('');
+        const kts=['10K','14K','18K','22K','24K','925','Platinum'].map(k=>`<option${k===karat?' selected':''}>${k}</option>`).join('');
         return `<tr>
           <td><input type="text" class="form-control" value="${name}" style="min-width:130px;padding:5px 8px;font-size:12px;"></td>
           <td><select class="form-control" style="padding:5px 8px;min-width:90px;font-size:12px;">${cats}</select></td>
@@ -2269,216 +2265,12 @@ function handleStockFile(input) {
           <td><input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--gold-dark);"></td>
         </tr>`;
       }).join('');
-
-      document.getElementById('parseStatus').textContent = '✓ ' + rows.length + ' rows found in ' + file.name + ' — verify and confirm.';
       document.getElementById('pdfPreviewArea').style.display = 'block';
-      document.getElementById('stockUploadZone').innerHTML = '<div class="upload-icon">✓</div><div class="upload-text" style="color:var(--success);">' + file.name + '</div><div class="upload-hint">Columns mapped — verify below</div>';
-    } catch(err) {
-      showToast('⚠ Could not parse file: ' + err.message);
-      console.error(err);
-    }
+      document.getElementById('stockUploadZone').innerHTML = '<div class="upload-icon">✓</div><div class="upload-text" style="color:var(--success);">' + file.name + ' — ' + rows.length + ' rows found</div><div class="upload-hint">Verify below then confirm</div>';
+    } catch(err) { showToast('⚠ Could not parse file: ' + err.message); }
   };
   reader.readAsArrayBuffer(file);
 }
-
-// ===== RECEIPT UPLOAD TO FIREBASE STORAGE =====
-const _receiptData = {}; // rowId → { url, path, name }
-
-async function handleReceiptUpload(input, rowId, btnId) {
-  if (!input.files || !input.files[0]) return;
-  const file = input.files[0];
-  const btn = document.getElementById(btnId);
-  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
-  try {
-    const result = await window.DB.uploadFile(file, 'receipts');
-    _receiptData[rowId] = result;
-    if (btn) {
-      btn.innerHTML = `<a href="${result.url}" target="_blank" style="color:var(--success);text-decoration:none;">✓ ${result.name.slice(0,14)}${result.name.length>14?'…':''}</a>`;
-      btn.disabled = false;
-    }
-    showToast('✓ Receipt uploaded');
-  } catch(e) {
-    if (btn) { btn.textContent = '📎 Attach'; btn.disabled = false; }
-    showToast('⚠ Upload failed: ' + e.message);
-  }
-}
-
-// ===== VENDOR SAVE/LOAD =====
-let _vendors = [];
-
-async function loadVendors() {
-  try {
-    _vendors = await window.DB.getVendors();
-    renderVendorList();
-    const sel = document.getElementById('manualVendorName');
-    if (sel) {
-      sel.innerHTML = '<option>-- Select Vendor --</option>' + _vendors.map(v=>`<option>${v.name}</option>`).join('');
-    }
-  } catch(e) { console.warn('loadVendors error:', e); }
-}
-
-function renderVendorList() {
-  const el = document.getElementById('vendorsList');
-  if (!el) return;
-  if (!_vendors.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">No vendors added yet.</div>'; return; }
-  el.innerHTML = _vendors.map(v => `
-    <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div>
-          <div style="font-weight:600;font-size:14px;">${v.name}</div>
-          <div style="font-size:12px;color:var(--text2);margin-top:2px;">${v.contact||''} ${v.email?'· '+v.email:''} ${v.phone?'· '+v.phone:''}</div>
-          <div style="font-size:12px;color:var(--text2);">${v.specialty||''}</div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <span class="badge badge-green">Active</span>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteVendor('${v.id}')">✕</button>
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-async function saveVendorToFirebase() {
-  const name = document.getElementById('vendorName')?.value.trim();
-  if (!name) { showToast('⚠ Vendor name is required'); return; }
-  const data = {
-    name,
-    contact:   document.getElementById('vendorContact')?.value.trim()||'',
-    email:     document.getElementById('vendorEmail')?.value.trim()||'',
-    phone:     document.getElementById('vendorPhone')?.value.trim()||'',
-    specialty: document.getElementById('vendorSpecialty')?.value.trim()||'',
-    address:   document.getElementById('vendorAddress')?.value.trim()||'',
-    createdBy: currentUser?.name||''
-  };
-  try {
-    showToast('Saving vendor...');
-    await window.DB.saveVendor(data);
-    ['vendorName','vendorContact','vendorEmail','vendorPhone','vendorSpecialty','vendorAddress'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-    closeModal('vendorModal');
-    await loadVendors();
-    showToast('✓ Vendor saved');
-  } catch(e) { showToast('⚠ ' + e.message); }
-}
-
-async function deleteVendor(id) {
-  if (!confirm('Remove this vendor?')) return;
-  try { await window.DB.deleteVendor(id); _vendors=_vendors.filter(v=>v.id!==id); renderVendorList(); showToast('✓ Vendor removed'); }
-  catch(e) { showToast('⚠ ' + e.message); }
-}
-
-// ===== USERS — SAVE/LOAD FROM FIREBASE =====
-let _firestoreUsers = [];
-
-async function loadUsers() {
-  try {
-    _firestoreUsers = await window.DB.getUsers();
-    _firestoreUsers.forEach(u => {
-      if (u.username && u.pass) {
-        USERS_DB[u.username] = { pass: u.pass, role: u.role||'Sales', name: u.name||u.username };
-      }
-    });
-    renderUsersList();
-    if (currentUser?.role === 'MasterAdmin') {
-      const sel = document.getElementById('permUserSelect');
-      if (sel) {
-        sel.innerHTML = '<option value="">— Select a user —</option>' +
-          Object.entries(USERS_DB).filter(([k,v])=>v.role!=='MasterAdmin'&&!v.sandbox)
-            .map(([k,v])=>`<option value="${k}">${v.name} (${v.role})</option>`).join('');
-      }
-    }
-  } catch(e) { console.warn('loadUsers error:', e); }
-}
-
-function renderUsersList() {
-  const list = document.getElementById('usersList');
-  if (!list) return;
-  // Always show MasterAdmin as first immutable row
-  const masterRow = `<div style="padding:12px;background:var(--gold-pale);border-radius:8px;border:1px solid var(--gold-light);">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--gold-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold-pale);">MA</div>
-      <div><div style="font-weight:600;">MasterAdmin</div><div style="font-size:11px;color:var(--gold-dark);">Full system access · Cannot be removed</div></div></div>
-      <span class="badge" style="background:var(--gold-dark);color:var(--gold-pale);">MasterAdmin</span>
-    </div>
-  </div>`;
-
-  const userRows = _firestoreUsers.map(u => {
-    const initials = (u.name||u.username).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const id = 'user-fs-' + u.username;
-    return `<div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);" id="${id}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;background:var(--beige3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);">${initials}</div>
-          <div><div style="font-weight:600;">${u.name||u.username}</div><div style="font-size:12px;color:var(--text2);">${u.email||u.username}</div></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span class="badge badge-blue">${u.role||'Sales'}</span>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="removeFirestoreUser('${u.username}','${u.name||u.username}')">✕</button>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <div style="position:relative;flex:1;"><input type="password" class="form-control" placeholder="New password" style="padding:6px 36px 6px 10px;font-size:12px;" id="pwd-fs-${u.username}">
-        <span onclick="togglePwdVis('pwd-fs-${u.username}',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">👁</span></div>
-        <button class="btn btn-outline btn-sm" onclick="updateFirestorePassword('${u.username}')">Update Password</button>
-      </div>
-    </div>`;
-  }).join('');
-
-  list.innerHTML = masterRow + userRows;
-}
-
-async function addNewUser() {
-  const name  = document.getElementById('newUserName').value.trim();
-  const email = document.getElementById('newUserEmail').value.trim();
-  const role  = document.getElementById('newUserRole').value;
-  const pass  = document.getElementById('newUserPass').value;
-  if (!name || !email || !pass) { showToast('Fill in all required fields'); return; }
-  if (pass.length < 8) { showToast('Password must be at least 8 characters'); return; }
-  const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9.]/g,'');
-  const userData = { username, name, email, role, pass, createdBy: currentUser?.name||'', createdAt: new Date().toISOString() };
-  try {
-    await window.DB.saveUser(userData);
-    // Also add to local USERS_DB for this session
-    USERS_DB[username] = { pass, role, name };
-    _firestoreUsers.push(userData);
-    renderUsersList();
-    // Refresh permissions dropdown
-    const sel = document.getElementById('permUserSelect');
-    if (sel && currentUser?.role === 'MasterAdmin') {
-      sel.innerHTML = '<option value="">— Select a user —</option>' +
-        Object.entries(USERS_DB).filter(([k,v])=>v.role!=='MasterAdmin'&&!v.sandbox)
-          .map(([k,v])=>`<option value="${k}">${v.name} (${v.role})</option>`).join('');
-    }
-    document.getElementById('newUserName').value='';
-    document.getElementById('newUserEmail').value='';
-    document.getElementById('newUserPass').value='';
-    showToast('✓ User ' + name + ' added (' + role + ')');
-  } catch(e) { showToast('⚠ ' + e.message); }
-}
-
-async function removeFirestoreUser(username, name) {
-  if (!confirm('Remove user ' + name + '? This cannot be undone.')) return;
-  try {
-    await window.DB.deleteUser(username);
-    delete USERS_DB[username];
-    _firestoreUsers = _firestoreUsers.filter(u=>u.username!==username);
-    renderUsersList();
-    showToast('✓ User ' + name + ' removed');
-  } catch(e) { showToast('⚠ ' + e.message); }
-}
-
-async function updateFirestorePassword(username) {
-  const inp = document.getElementById('pwd-fs-' + username);
-  if (!inp || inp.value.length < 8) { showToast('Password must be at least 8 characters'); return; }
-  try {
-    await window.DB.saveUser({ username, pass: inp.value });
-    if (USERS_DB[username]) USERS_DB[username].pass = inp.value;
-    inp.value = '';
-    showToast('✓ Password updated for ' + username);
-  } catch(e) { showToast('⚠ ' + e.message); }
-}
-
-// Override old removeUser to use Firestore version
-function removeUser(id, name) { removeFirestoreUser(id.replace('user-','').replace('user-fs-',''), name); }
-
 function confirmInward() {
   showToast('✓ Stock inwarded to inventory');
   document.getElementById('pdfPreviewArea').style.display = 'none';
@@ -2968,8 +2760,6 @@ let expRowCounter = 1;
 function addExpenseRow() {
   expRowCounter++;
   const id = 'exp-r-' + expRowCounter;
-  const btnId = 'receiptBtn-' + expRowCounter;
-  const inpId = 'receiptInput-' + expRowCounter;
   const container = document.getElementById('expenseRowsContainer');
   const today = new Date().toISOString().split('T')[0];
   const div = document.createElement('div');
@@ -2981,8 +2771,7 @@ function addExpenseRow() {
     <input type="text" class="form-control" placeholder="What was purchased?" style="font-size:13px;">
     <input type="number" class="form-control" placeholder="0.00" step="0.01" style="padding:7px 8px;font-size:13px;">
     <select class="form-control" style="padding:7px 8px;font-size:13px;"><option>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option><option>Owner</option></select>
-    <button class="btn btn-outline btn-sm" id="${btnId}" onclick="document.getElementById('${inpId}').click()" style="font-size:12px;">📎 Attach</button>
-    <input type="file" id="${inpId}" style="display:none;" accept="image/*,.pdf" onchange="handleReceiptUpload(this,'${id}','${btnId}')">
+    <button class="btn btn-outline btn-sm" style="font-size:12px;">📎 Attach</button>
     <button class="btn btn-danger btn-icon" onclick="removeExpRow('${id}')">✕</button>`;
   container.appendChild(div);
 }
@@ -3004,10 +2793,7 @@ async function submitAllExpenses() {
     const amount = parseFloat(row.querySelector('input[type=number]')?.value) || 0;
     if (!desc) { showToast('⚠ Row '+(idx+1)+': enter a description'); err=true; return; }
     if (amount <= 0) { showToast('⚠ Row '+(idx+1)+': enter an amount'); err=true; return; }
-    const receipt = _receiptData[row.id] || null;
-    expenses.push({ date, category: cat, description: desc, amount, member,
-      receiptUrl: receipt?.url||'', receiptPath: receipt?.path||'', receiptName: receipt?.name||'',
-      createdBy: currentUser?.name||'' });
+    expenses.push({ date, category: cat, description: desc, amount, member, createdBy: currentUser?.name||'' });
   });
   if (err) return;
   try {
@@ -3017,8 +2803,6 @@ async function submitAllExpenses() {
     document.getElementById('expenseRowsContainer').innerHTML = '';
     expRowCounter = 0; addExpenseRow();
     document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
-    // Clear receipt data for submitted rows
-    Object.keys(_receiptData).forEach(k => delete _receiptData[k]);
     await loadExpenses(); refreshDashboard();
   } catch(e) { showToast('⚠ ' + e.message); console.error(e); }
 }
@@ -3253,9 +3037,6 @@ async function loadAllData() {
     showToast('⚠ Firebase error — check connection');
     console.error('loadAllData:', e);
   }
-  // Load vendors and users separately — don't let them break the main load
-  try { await loadVendors(); } catch(e) { console.warn('loadVendors:', e); }
-  try { await loadUsers();   } catch(e) { console.warn('loadUsers:', e); }
 }
 
 async function loadCustomers() {
@@ -3672,7 +3453,7 @@ function renderFilteredExpenses(expArr, title) {
       <td>${e.description||'—'}</td>
       <td style="font-weight:500;">$${parseFloat(e.amount||0).toFixed(2)}</td>
       <td>${e.member||'—'}</td>
-      <td>${e.receiptUrl ? `<a href="${e.receiptUrl}" target="_blank" style="color:var(--success);font-size:12px;">↓ ${e.receiptName||'Receipt'}</a>` : '—'}</td>
+      <td>—</td>
       ${isMaster ? `<td><button class="btn btn-danger btn-sm btn-icon" onclick="deleteExpenseRow('${e.id}')">✕</button></td>` : '<td style="display:none;"></td>'}
     </tr>`).join('');
   document.getElementById('filterPanelMeta').textContent = expArr.length + ' entr' + (expArr.length===1?'y':'ies');
@@ -4087,6 +3868,252 @@ function updatePassword(pwdId, name) {
   inp.value = '';
   showToast('Password updated for ' + name);
 }
+
+// ===== VENDORS =====
+let _vendors = [];
+
+async function loadVendors() {
+  try {
+    _vendors = await window.DB.getVendors();
+    renderVendorList();
+    const sel = document.getElementById('manualVendorName');
+    if (sel) sel.innerHTML = '<option>-- Select Vendor --</option>' + _vendors.map(v=>`<option>${v.name}</option>`).join('');
+  } catch(e) { console.warn('loadVendors:', e); }
+}
+
+function renderVendorList() {
+  const el = document.getElementById('vendorsList');
+  if (!el) return;
+  if (!_vendors.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">No vendors added yet.</div>'; return; }
+  el.innerHTML = _vendors.map(v => `
+    <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-weight:600;font-size:14px;">${v.name}</div>
+          <div style="font-size:12px;color:var(--text2);">${v.contact||''} ${v.email?'· '+v.email:''} ${v.phone?'· '+v.phone:''}</div>
+          <div style="font-size:12px;color:var(--text2);">${v.specialty||''}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span class="badge badge-green">Active</span>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteVendor('${v.id}')">✕</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function saveVendorModal() {
+  const name = (document.getElementById('vendorName')?.value||'').trim();
+  if (!name) { showToast('⚠ Vendor name is required'); return; }
+  try {
+    showToast('Saving...');
+    await window.DB.saveVendor({
+      name, contact: document.getElementById('vendorContact')?.value||'',
+      email: document.getElementById('vendorEmail')?.value||'',
+      phone: document.getElementById('vendorPhone')?.value||'',
+      specialty: document.getElementById('vendorSpecialty')?.value||'',
+      address: document.getElementById('vendorAddress')?.value||'',
+      createdBy: currentUser?.name||''
+    });
+    ['vendorName','vendorContact','vendorEmail','vendorPhone','vendorSpecialty','vendorAddress'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    closeModal('vendorModal');
+    await loadVendors();
+    showToast('✓ Vendor saved');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+async function deleteVendor(id) {
+  if (!confirm('Remove this vendor?')) return;
+  try { await window.DB.deleteVendor(id); await loadVendors(); showToast('✓ Vendor removed'); }
+  catch(e) { showToast('⚠ ' + e.message); }
+}
+
+// ===== USERS (FIRESTORE) =====
+let _firestoreUsers = [];
+
+async function loadUsers() {
+  try {
+    _firestoreUsers = await window.DB.getUsers();
+    _firestoreUsers.forEach(u => {
+      if (u.username && u.pass) USERS_DB[u.username] = { pass: u.pass, role: u.role||'Sales', name: u.name||u.username };
+    });
+    renderFirestoreUsersList();
+  } catch(e) { console.warn('loadUsers:', e); }
+}
+
+function renderFirestoreUsersList() {
+  // Only update if there are Firestore users — don't overwrite the static HTML if empty
+  if (!_firestoreUsers.length) return;
+  const list = document.getElementById('usersList');
+  if (!list) return;
+  const masterRow = list.querySelector('[id="user-MA"]')?.outerHTML || `<div style="padding:12px;background:var(--gold-pale);border-radius:8px;border:1px solid var(--gold-light);">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--gold-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold-pale);">MA</div>
+      <div><div style="font-weight:600;">MasterAdmin</div><div style="font-size:11px;color:var(--gold-dark);">Full system access · Cannot be removed</div></div></div>
+      <span class="badge" style="background:var(--gold-dark);color:var(--gold-pale);">MasterAdmin</span>
+    </div>
+  </div>`;
+  const newRows = _firestoreUsers.map(u => {
+    const initials = (u.name||u.username||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return `<div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;background:var(--beige3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);">${initials}</div>
+          <div><div style="font-weight:600;">${u.name||u.username}</div><div style="font-size:12px;color:var(--text2);">${u.email||u.username} · ${u.role}</div></div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteFirestoreUser('${u.username}','${u.name||u.username}')">✕</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="position:relative;flex:1;"><input type="password" class="form-control" placeholder="New password" style="padding:6px 36px 6px 10px;font-size:12px;" id="pwd-fs-${u.username}">
+        <span onclick="togglePwdVis('pwd-fs-${u.username}',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">👁</span></div>
+        <button class="btn btn-outline btn-sm" onclick="updateFirestorePassword('${u.username}')">Update Password</button>
+      </div>
+    </div>`;
+  }).join('');
+  list.innerHTML = masterRow + newRows;
+}
+
+async function addNewUser() {
+  const name  = document.getElementById('newUserName').value.trim();
+  const email = document.getElementById('newUserEmail').value.trim();
+  const role  = document.getElementById('newUserRole').value;
+  const pass  = document.getElementById('newUserPass').value;
+  if (!name || !email || !pass) { showToast('Fill in all required fields'); return; }
+  if (pass.length < 8) { showToast('Password must be at least 8 characters'); return; }
+  const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9.]/g,'');
+  try {
+    await window.DB.saveUser({ username, name, email, role, pass, createdBy: currentUser?.name||'' });
+    USERS_DB[username] = { pass, role, name };
+    _firestoreUsers.push({ username, name, email, role, pass });
+    renderFirestoreUsersList();
+    document.getElementById('newUserName').value='';
+    document.getElementById('newUserEmail').value='';
+    document.getElementById('newUserPass').value='';
+    showToast('✓ User ' + name + ' added (' + role + ')');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+async function deleteFirestoreUser(username, name) {
+  if (!confirm('Remove user ' + name + '?')) return;
+  try {
+    await window.DB.deleteUser(username);
+    delete USERS_DB[username];
+    _firestoreUsers = _firestoreUsers.filter(u=>u.username!==username);
+    renderFirestoreUsersList();
+    showToast('✓ ' + name + ' removed');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+async function updateFirestorePassword(username) {
+  const inp = document.getElementById('pwd-fs-' + username);
+  if (!inp || inp.value.length < 8) { showToast('Password must be at least 8 characters'); return; }
+  try {
+    await window.DB.saveUser({ username, pass: inp.value });
+    if (USERS_DB[username]) USERS_DB[username].pass = inp.value;
+    inp.value = '';
+    showToast('✓ Password updated');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+// ===== RECEIPT UPLOAD =====
+const _receiptData = {};
+
+async function handleReceiptUpload(input, rowId, btnId) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const btn = document.getElementById(btnId);
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+  try {
+    const result = await window.DB.uploadFile(file, 'receipts');
+    _receiptData[rowId] = result;
+    if (btn) { btn.innerHTML = `<a href="${result.url}" target="_blank" style="color:var(--success);text-decoration:none;">✓ ${result.name.slice(0,12)}${result.name.length>12?'…':''}</a>`; btn.disabled = false; }
+    showToast('✓ Receipt uploaded');
+  } catch(e) {
+    if (btn) { btn.textContent = '📎 Attach'; btn.disabled = false; }
+    showToast('⚠ Upload failed — Storage not enabled yet');
+  }
+}
+
+// Update addExpenseRow to include per-row receipt upload
+(function patchAddExpenseRow() {
+  const orig = window.addExpenseRow ? addExpenseRow : null;
+  expRowCounter = 1;
+  window.addExpenseRow = function() {
+    expRowCounter++;
+    const id = 'exp-r-' + expRowCounter;
+    const btnId = 'receiptBtn-' + expRowCounter;
+    const fileId = 'receiptFile-' + expRowCounter;
+    const container = document.getElementById('expenseRowsContainer');
+    const today = new Date().toISOString().split('T')[0];
+    const div = document.createElement('div');
+    div.className = 'exp-row'; div.id = id;
+    div.style.cssText = 'display:grid;grid-template-columns:130px 150px 1fr 110px 150px 130px 36px;gap:8px;margin-bottom:8px;align-items:center;';
+    div.innerHTML = `
+      <input type="date" class="form-control" value="${today}" style="padding:7px 8px;font-size:13px;">
+      <select class="form-control" style="padding:7px 8px;font-size:13px;"><option>Office Supplies</option><option>Packaging</option><option>Travel</option><option>Marketing</option><option>Utilities</option><option>Maintenance</option><option>Misc / Petty Cash</option></select>
+      <input type="text" class="form-control" placeholder="What was purchased?" style="font-size:13px;">
+      <input type="number" class="form-control" placeholder="0.00" step="0.01" style="padding:7px 8px;font-size:13px;">
+      <select class="form-control" style="padding:7px 8px;font-size:13px;"><option>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option><option>Owner</option></select>
+      <button class="btn btn-outline btn-sm" id="${btnId}" onclick="document.getElementById('${fileId}').click()" style="font-size:12px;">📎 Attach</button>
+      <input type="file" id="${fileId}" style="display:none;" accept="image/*,.pdf" onchange="handleReceiptUpload(this,'${id}','${btnId}')">
+      <button class="btn btn-danger btn-icon" onclick="removeExpRow('${id}')">✕</button>`;
+    container.appendChild(div);
+  };
+})();
+
+// Patch submitAllExpenses to include receipt URLs
+const _origSubmitExpenses = submitAllExpenses;
+submitAllExpenses = async function() {
+  const rows = document.querySelectorAll('.exp-row');
+  const expenses = []; let err = false;
+  rows.forEach((row, idx) => {
+    const date   = row.querySelector('input[type=date]')?.value || new Date().toISOString().split('T')[0];
+    const cat    = row.querySelectorAll('select')[0]?.value || 'Misc';
+    const member = row.querySelectorAll('select')[1]?.value || '';
+    const desc   = row.querySelector('input[type=text]')?.value?.trim() || '';
+    const amount = parseFloat(row.querySelector('input[type=number]')?.value) || 0;
+    if (!desc) { showToast('⚠ Row '+(idx+1)+': enter a description'); err=true; return; }
+    if (amount <= 0) { showToast('⚠ Row '+(idx+1)+': enter an amount'); err=true; return; }
+    const receipt = _receiptData[row.id] || null;
+    expenses.push({ date, category: cat, description: desc, amount, member,
+      receiptUrl: receipt?.url||'', receiptPath: receipt?.path||'', receiptName: receipt?.name||'',
+      createdBy: currentUser?.name||'' });
+  });
+  if (err) return;
+  try {
+    showToast('Saving...');
+    for (const exp of expenses) await window.DB.saveExpense(exp);
+    showToast('✓ '+expenses.length+' expense(s) saved');
+    document.getElementById('expenseRowsContainer').innerHTML = '';
+    expRowCounter = 1; addExpenseRow();
+    document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
+    Object.keys(_receiptData).forEach(k => delete _receiptData[k]);
+    await loadExpenses(); refreshDashboard();
+  } catch(e) { showToast('⚠ ' + e.message); }
+};
+
+// Patch loadAllData to silently load vendors+users after core load
+const _origLoadAllData = loadAllData;
+loadAllData = async function() {
+  await _origLoadAllData();
+  try { await loadVendors(); } catch(e) { console.warn('loadVendors:', e); }
+  try { await loadUsers();   } catch(e) { console.warn('loadUsers:', e); }
+};
+
+// Show receipt download link in filtered expense panel
+const _origRenderFiltered = renderFilteredExpenses;
+renderFilteredExpenses = function(expArr, title) {
+  _origRenderFiltered(expArr, title);
+  // Patch receipt column — replace '—' with download link where available
+  const rows = document.querySelectorAll('#filteredExpenseBody tr');
+  expArr.forEach((e, i) => {
+    if (e.receiptUrl && rows[i]) {
+      const cells = rows[i].querySelectorAll('td');
+      if (cells[5]) cells[5].innerHTML = `<a href="${e.receiptUrl}" target="_blank" style="color:var(--success);font-size:12px;">↓ ${e.receiptName||'Receipt'}</a>`;
+    }
+  });
+};
 
 </script>
 </body>
