@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kalü Jewelry — Management System v13</title>
+<title>Kalü Jewelry — Management System v14</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -36,10 +36,10 @@
   --shadow-md: 0 2px 8px rgba(44,36,22,0.12);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Jost', sans-serif; background: var(--beige); color: var(--text); min-height: 100vh; font-size: 14px; }
+body { font-family: 'Jost', sans-serif; background: var(--beige); color: var(--text); min-height: 100vh; font-size: 14px; padding-top: 54px; }
 
 /* TOPBAR */
-.topbar { background: #7A5900; color: var(--gold-pale); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 54px; position: sticky; top: 0; z-index: 100; opacity: 1 !important; }
+.topbar { background: #7A5900; color: var(--gold-pale); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 54px; position: fixed; top: 0; left: 0; right: 0; z-index: 200; }
 .topbar-brand { display: flex; align-items: center; gap: 10px; }
 .topbar-logo { width: 34px; height: 34px; background: var(--gold-mid); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: var(--gold-dark); }
 .topbar-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; letter-spacing: 1px; color: var(--gold-light); }
@@ -51,7 +51,7 @@ body { font-family: 'Jost', sans-serif; background: var(--beige); color: var(--t
 .sep { width: 1px; height: 26px; background: rgba(255,255,255,0.15); }
 
 /* NAV */
-.nav-tabs { background: #EDE6D6; display: flex; padding: 0 12px; gap: 4px; border-bottom: 2px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch; position: sticky; top: 54px; z-index: 99; align-items: center; opacity: 1 !important; }
+.nav-tabs { background: #EDE6D6; display: flex; padding: 0 12px; gap: 4px; border-bottom: 2px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch; position: sticky; top: 54px; z-index: 150; align-items: center; }
 .nav-tab { padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; border: 2px solid transparent; border-radius: 7px; margin: 5px 2px; white-space: nowrap; transition: all 0.18s; line-height: 1.3; }
 .nav-tab:hover { color: var(--gold-dark); border-color: var(--gold-light); background: var(--gold-pale); }
 .nav-tab.active { color: var(--gold-dark); border: 2px solid var(--gold-dark); background: var(--gold-pale); font-weight: 600; }
@@ -757,6 +757,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <span></span>
       </div>
       <div id="lineItemsContainer">
+        <div id="lineItemsEmpty" style="padding:16px 10px;text-align:center;color:var(--text3);font-size:13px;border:1px dashed var(--border2);border-radius:var(--radius);margin-bottom:6px;">
+          No items added yet — click <strong style="color:var(--gold-dark);">+ Add from Inventory</strong> or use the search above.
+        </div>
       </div>
 
       <hr>
@@ -1285,7 +1288,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
 <!-- ========== TAB 5: ADMIN ========== -->
 <div id="tab-admin" class="tab-pane">
-  <div class="sub-tabs" style="position:sticky;top:108px;z-index:90;background:var(--beige);padding-top:2px;">
+  <div class="sub-tabs" style="position:sticky;top:102px;z-index:90;background:var(--beige);padding-top:2px;">
     <div class="sub-tab active" onclick="switchSubTab('company',this)">Company Details</div>
     <div class="sub-tab" onclick="switchSubTab('custconfig',this)">Custom Configurations</div>
     <div class="sub-tab" onclick="switchSubTab('karat',this)">Karat Pricing</div>
@@ -1378,7 +1381,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <!-- Client Tier Configuration -->
       <div class="card">
         <div class="card-title">Client Tier Benchmarks</div>
-        <div class="alert alert-info">ℹ Tiers are automatically assigned to clients based on total spend over the configured time window.</div>
+        <div class="alert alert-info">ℹ Tiers are automatically assigned to clients based on total spend. Edit any threshold and save.</div>
         <div class="form-group"><label>Calculation Period</label>
           <select class="form-control">
             <option>Lifetime spend</option>
@@ -1389,41 +1392,41 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </div>
         <hr>
         <!-- Silver -->
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px;background:var(--beige);border-radius:var(--radius);border:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:12px;background:var(--beige);border-radius:var(--radius);border:1px solid var(--border);">
           <div style="width:14px;height:14px;background:#B0A8A0;border-radius:50%;flex-shrink:0;"></div>
-          <div style="flex:1;">
+          <div style="flex:1;min-width:60px;">
             <div style="font-weight:600;font-size:13px;color:var(--text2);">Silver</div>
             <div style="font-size:11px;color:var(--text3);">Starting tier</div>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:12px;color:var(--text2);">$0 —</span>
-            <input type="number" class="form-control" value="4999" style="width:90px;padding:5px 8px;font-size:13px;">
-          </div>
+          <span style="font-size:11px;color:var(--text3);">From $</span>
+          <input type="number" id="tierSilverMin" class="form-control" value="0" style="width:80px;padding:5px 8px;font-size:13px;">
+          <span style="font-size:11px;color:var(--text3);">to $</span>
+          <input type="number" id="tierSilverMax" class="form-control" value="4999" style="width:80px;padding:5px 8px;font-size:13px;">
         </div>
         <!-- Gold -->
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px;background:var(--gold-pale);border-radius:var(--radius);border:1px solid var(--gold-light);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:12px;background:var(--gold-pale);border-radius:var(--radius);border:1px solid var(--gold-light);">
           <div style="width:14px;height:14px;background:var(--gold-mid);border-radius:50%;flex-shrink:0;"></div>
-          <div style="flex:1;">
+          <div style="flex:1;min-width:60px;">
             <div style="font-weight:600;font-size:13px;color:var(--gold-dark);">Gold</div>
             <div style="font-size:11px;color:var(--text3);">Mid tier</div>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:12px;color:var(--text2);">$5,000 —</span>
-            <input type="number" class="form-control" value="14999" style="width:90px;padding:5px 8px;font-size:13px;">
-          </div>
+          <span style="font-size:11px;color:var(--text3);">From $</span>
+          <input type="number" id="tierGoldMin" class="form-control" value="5000" style="width:80px;padding:5px 8px;font-size:13px;">
+          <span style="font-size:11px;color:var(--text3);">to $</span>
+          <input type="number" id="tierGoldMax" class="form-control" value="14999" style="width:80px;padding:5px 8px;font-size:13px;">
         </div>
         <!-- Platinum -->
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px;background:#F0EBF8;border-radius:var(--radius);border:1px solid #D8CAEB;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px;background:#F0EBF8;border-radius:var(--radius);border:1px solid #D8CAEB;">
           <div style="width:14px;height:14px;background:#7B5EA7;border-radius:50%;flex-shrink:0;"></div>
-          <div style="flex:1;">
+          <div style="flex:1;min-width:60px;">
             <div style="font-weight:600;font-size:13px;color:#5A3E8A;">Platinum</div>
             <div style="font-size:11px;color:var(--text3);">Top tier</div>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:12px;color:var(--text2);">$15,000 +</span>
-          </div>
+          <span style="font-size:11px;color:var(--text3);">From $</span>
+          <input type="number" id="tierPlatinumMin" class="form-control" value="15000" style="width:80px;padding:5px 8px;font-size:13px;">
+          <span style="font-size:11px;color:var(--text3);">and above</span>
         </div>
-        <button class="btn btn-gold" style="width:100%;" onclick="showToast('Tier benchmarks saved & applied to all clients')">Save Tier Configuration</button>
+        <button class="btn btn-gold" style="width:100%;" onclick="saveTierConfig()">💾 Save Tier Configuration</button>
       </div>
     </div>
   </div>
@@ -1445,19 +1448,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <button class="btn btn-success" style="width:100%;" onclick="showToast('All karat prices updated & applied to full inventory')">Update All Prices Now</button>
       </div>
       <div class="card">
-        <div class="card-title">Gold Rate History (30 days)</div>
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-          <button class="btn btn-gold btn-sm" onclick="showKaratHistory('14K',this)">14K</button>
-          <button class="btn btn-outline btn-sm" onclick="showKaratHistory('10K',this)">10K</button>
-          <button class="btn btn-outline btn-sm" onclick="showKaratHistory('18K',this)">18K</button>
-          <button class="btn btn-outline btn-sm" onclick="showKaratHistory('22K',this)">22K</button>
-          <button class="btn btn-outline btn-sm" onclick="showKaratHistory('925',this)">925</button>
-          <button class="btn btn-outline btn-sm" onclick="showKaratHistory('Platinum',this)">Platinum</button>
+        <div class="card-title">Gold Rate History — All Karats</div>
+        <div id="allKaratHistory" style="display:flex;flex-direction:column;gap:14px;">
+          <div style="text-align:center;color:var(--text3);font-size:13px;padding:20px;">No rate history yet. Update any karat rate to start tracking.</div>
         </div>
-        <div id="karatHistoryChart" class="chart-bar-wrap">
-          <div style="text-align:center;color:var(--text3);font-size:13px;padding:20px;">No rate history yet. Update a karat rate above to start tracking.</div>
-        </div>
-        <div style="font-size:11px;color:var(--text3);margin-top:8px;">Rate history is recorded each time you click Update on a karat price.</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:10px;">Each Update click logs a data point. Up to 30 days shown per karat.</div>
       </div>
     </div>
   </div>
@@ -1503,17 +1498,26 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
           </div>
         </div>
       </div>
-      <div class="card"><div class="card-title">Permissions by Role</div>
-        <div class="table-wrap"><table><thead><tr><th>Feature</th><th>MasterAdmin</th><th>Admin</th><th>Sales</th><th>Inventory</th></tr></thead><tbody>
-          <tr><td>Create Invoice</td><td style="color:var(--success);">&#10003;</td><td style="color:var(--success);">&#10003;</td><td style="color:var(--success);">&#10003;</td><td>&#8212;</td></tr>
-          <tr><td>Delete Invoice</td><td style="color:var(--success);">&#10003;</td><td style="color:var(--success);">&#10003;</td><td>&#8212;</td><td>&#8212;</td></tr>
-          <tr><td>View Inventory</td><td style="color:var(--success);">&#10003;</td><td style="color:var(--success);">&#10003;</td><td style="color:var(--success);">&#10003;</td><td style="color:var(--success);">&#10003;</td></tr>
-          <tr><td>Add Stock</td><td style="color:var(--success);">&#10003;</td><td style="color:var(--success);">&#10003;</td><td>&#8212;</td><td style="color:var(--success);">&#10003;</td></tr>
-          <tr><td>View Dashboard</td><td style="color:var(--success);">&#10003;</td><td style="color:var(--success);">&#10003;</td><td>&#8212;</td><td>&#8212;</td></tr>
-          <tr><td>Admin Settings</td><td style="color:var(--success);">&#10003;</td><td style="color:var(--success);">&#10003;</td><td>&#8212;</td><td>&#8212;</td></tr>
-          <tr><td>Manage Users</td><td style="color:var(--success);">&#10003;</td><td style="color:var(--success);">&#10003;</td><td>&#8212;</td><td>&#8212;</td></tr>
-          <tr><td>Update Passwords</td><td style="color:var(--success);">&#10003;</td><td style="color:var(--success);">&#10003;</td><td>&#8212;</td><td>&#8212;</td></tr>
-        </tbody></table></div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+          <div class="card-title" style="margin-bottom:0;">User Permissions</div>
+          <select class="form-control" style="width:180px;" id="permUserSelect" onchange="loadUserPermissions(this.value)">
+            <option value="">— Select a user —</option>
+            <option value="sarah.a">Sarah A. (Admin)</option>
+            <option value="mike.r">Mike R. (Sales)</option>
+            <option value="priya.k">Priya K. (Sales)</option>
+            <option value="james.t">James T. (Inventory)</option>
+          </select>
+        </div>
+        <div id="permUserPanel" style="display:none;">
+          <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;" id="permUserLabel"></div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="permCheckboxes"></div>
+          <div style="margin-top:16px;display:flex;gap:10px;">
+            <button class="btn btn-gold" onclick="saveUserPermissions()">💾 Save Permissions</button>
+            <button class="btn btn-outline btn-sm" onclick="resetUserPermissions()">Reset to Role Default</button>
+          </div>
+        </div>
+        <div id="permEmptyMsg" style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">Select a user above to view and edit their permissions.</div>
       </div>
     </div>
   </div>
@@ -1948,7 +1952,13 @@ function calcTotal() {
 
 function removeLineItem(id) {
   const el = document.getElementById(id);
-  if (el) { el.remove(); delete lineItemData[id]; calcTotal(); }
+  if (el) {
+    el.remove(); delete lineItemData[id]; calcTotal();
+    // Show empty placeholder if no items left
+    const remaining = document.querySelectorAll('#lineItemsContainer .li-row');
+    const empty = document.getElementById('lineItemsEmpty');
+    if (empty && remaining.length === 0) empty.style.display = '';
+  }
 }
 
 function addItemToInvoice(sku, name, price, cost) {
@@ -1956,6 +1966,9 @@ function addItemToInvoice(sku, name, price, cost) {
   const id = 'li-' + liCounter;
   lineItemData[id] = { name, sku, price: parseFloat(price), cost: parseFloat(cost)||0 };
   const container = document.getElementById('lineItemsContainer');
+  // Hide empty placeholder
+  const empty = document.getElementById('lineItemsEmpty');
+  if (empty) empty.style.display = 'none';
   const row = document.createElement('div');
   row.className = 'li-row'; row.id = id;
   row.dataset.sku  = sku;
@@ -2899,13 +2912,23 @@ function doLogin() {
     // Show sandbox banner
     if (window._sandboxMode) {
       document.getElementById('sandboxBanner').style.display = 'block';
-      document.querySelector('.topbar').style.marginTop = '36px';
+      document.querySelector('.topbar').style.top = '36px';
       document.querySelector('.nav-tabs').style.top = '90px';
+      document.body.style.paddingTop = '90px';
     }
     const initials = currentUser.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const avatarEl = document.querySelector('.topbar div:last-child div:last-child');
     if (avatarEl) avatarEl.textContent = initials;
     err.style.display = 'none';
+    // Populate the permissions user dropdown with all non-master users
+    const sel = document.getElementById('permUserSelect');
+    if (sel && currentUser.role === 'MasterAdmin') {
+      sel.innerHTML = '<option value="">— Select a user —</option>' +
+        Object.entries(USERS_DB)
+          .filter(([k,v]) => v.role !== 'MasterAdmin' && !v.sandbox)
+          .map(([k,v]) => `<option value="${k}">${v.name} (${v.role})</option>`)
+          .join('');
+    }
     showToast('Welcome, ' + currentUser.name + (window._sandboxMode ? ' — SANDBOX MODE' : ''));
     loadAllData();
   } else {
@@ -2919,8 +2942,9 @@ function exitSandbox() {
   window._sandboxMode = false;
   currentUser = null;
   document.getElementById('sandboxBanner').style.display = 'none';
-  document.querySelector('.topbar').style.marginTop = '';
+  document.querySelector('.topbar').style.top = '0';
   document.querySelector('.nav-tabs').style.top = '54px';
+  document.body.style.paddingTop = '54px';
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
@@ -2989,33 +3013,160 @@ async function applyKaratRate(karat) {
     _settings.karatRates = rates;
     _settings.rateHistory = _rateHistory;
     showToast('✓ ' + karat + ' rate saved & logged');
-    showKaratHistory(karat, null);
+    renderAllKaratHistory();
   } catch(e) { showToast('⚠ ' + e.message); }
 }
 
-function showKaratHistory(karat, btnEl) {
-  // Update button styles
-  document.querySelectorAll('#sub-karat .btn').forEach(b => b.className = 'btn btn-outline btn-sm');
-  if (btnEl) btnEl.className = 'btn btn-gold btn-sm';
-  const el = document.getElementById('karatHistoryChart');
+// ── Gold Rate History: all karats stacked with sparklines ──
+function renderAllKaratHistory() {
+  const el = document.getElementById('allKaratHistory');
   if (!el) return;
-  const history = (_settings.rateHistory || _rateHistory)?.[karat] || [];
-  if (!history.length) {
-    el.innerHTML = `<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px;">No history for ${karat} yet. Update the rate above to start tracking.</div>`;
+  const rh = _settings.rateHistory || _rateHistory || {};
+  const karats = ['14K','10K','18K','22K','925','Platinum'];
+  const hasAny = karats.some(k => rh[k] && rh[k].length);
+  if (!hasAny) {
+    el.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px;">No rate history yet. Update any karat rate to start tracking.</div>';
     return;
   }
-  const max = Math.max(...history.map(e=>e.rate));
-  const min = Math.min(...history.map(e=>e.rate));
-  const range = max - min || 1;
-  el.innerHTML = history.map((e,i) => {
-    const barPct = 20 + Math.round((e.rate-min)/range*75);
-    return `<div class="chart-bar-row">
-      <div class="chart-bar-label" style="font-size:11px;">${e.date}</div>
-      <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${barPct}%;${i>0?'background:var(--beige4);':''}"></div></div>
-      <div class="chart-bar-val">$${e.rate.toFixed(2)}/g</div>
-    </div>`;
+  el.innerHTML = karats.map(karat => {
+    const history = rh[karat] || [];
+    if (!history.length) return `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="width:44px;font-size:12px;font-weight:600;color:var(--text2);flex-shrink:0;">${karat}</div>
+        <div style="flex:1;font-size:12px;color:var(--text3);">No data yet</div>
+        <div style="font-size:12px;color:var(--text3);">—</div>
+      </div>`;
+    const latest = history[0];
+    const prev   = history[1];
+    const diff   = prev ? latest.rate - prev.rate : 0;
+    const arrow  = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+    const col    = diff > 0 ? 'var(--success)' : diff < 0 ? 'var(--danger)' : 'var(--text3)';
+    // Build mini SVG sparkline
+    const rates  = [...history].reverse().map(e => e.rate);
+    const smin   = Math.min(...rates);
+    const smax   = Math.max(...rates);
+    const srange = smax - smin || 0.01;
+    const W = 120, H = 28, pad = 3;
+    const pts = rates.map((r, i) => {
+      const x = pad + (i / Math.max(rates.length - 1, 1)) * (W - pad * 2);
+      const y = H - pad - ((r - smin) / srange) * (H - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="width:44px;font-size:12px;font-weight:600;color:var(--text2);flex-shrink:0;">${karat}</div>
+        <svg width="${W}" height="${H}" style="flex-shrink:0;">
+          <polyline points="${pts}" fill="none" stroke="var(--gold-mid)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="${pts.split(' ').pop().split(',')[0]}" cy="${pts.split(' ').pop().split(',')[1]}" r="2.5" fill="var(--gold-dark)"/>
+        </svg>
+        <div style="flex:1;font-size:12px;color:var(--text3);">${history.length} point${history.length===1?'':'s'} · Last: ${latest.date}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);">$${latest.rate.toFixed(2)}/g</div>
+        <div style="font-size:12px;font-weight:500;color:${col};min-width:40px;text-align:right;">${diff!==0?arrow+' $'+Math.abs(diff).toFixed(2):arrow}</div>
+      </div>`;
   }).join('');
 }
+
+// ── Tier Config save ──
+async function saveTierConfig() {
+  const tiers = {
+    silver: { min: parseFloat(document.getElementById('tierSilverMin')?.value)||0, max: parseFloat(document.getElementById('tierSilverMax')?.value)||4999 },
+    gold:   { min: parseFloat(document.getElementById('tierGoldMin')?.value)||5000, max: parseFloat(document.getElementById('tierGoldMax')?.value)||14999 },
+    platinum: { min: parseFloat(document.getElementById('tierPlatinumMin')?.value)||15000 }
+  };
+  try {
+    await window.DB.saveSettings({ tierThresholds: tiers });
+    _settings.tierThresholds = tiers;
+    showToast('✓ Tier thresholds saved & applied');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+// ── Per-user Permissions ──
+const ALL_PERMISSIONS = [
+  { key: 'createInvoice',   label: 'Create Invoice' },
+  { key: 'deleteInvoice',   label: 'Delete Invoice' },
+  { key: 'viewInventory',   label: 'View Inventory' },
+  { key: 'addStock',        label: 'Add Stock / Inward' },
+  { key: 'editInventory',   label: 'Edit Inventory Items' },
+  { key: 'viewExpenses',    label: 'View Expenses' },
+  { key: 'addExpenses',     label: 'Add Expenses' },
+  { key: 'deleteExpenses',  label: 'Delete Expenses' },
+  { key: 'viewDashboard',   label: 'View Dashboard' },
+  { key: 'viewCustomers',   label: 'View Customers' },
+  { key: 'editCustomers',   label: 'Edit / Merge Customers' },
+  { key: 'exportData',      label: 'Export CSV Data' },
+  { key: 'adminSettings',   label: 'Admin Settings' },
+  { key: 'manageUsers',     label: 'Manage Users' },
+  { key: 'updatePasswords', label: 'Update Passwords' },
+  { key: 'karatPricing',    label: 'Update Karat Rates' },
+];
+
+const ROLE_DEFAULTS = {
+  Admin:     ['createInvoice','deleteInvoice','viewInventory','addStock','editInventory','viewExpenses','addExpenses','viewDashboard','viewCustomers','editCustomers','exportData','adminSettings','manageUsers','updatePasswords','karatPricing'],
+  Sales:     ['createInvoice','viewInventory','viewCustomers','editCustomers','viewExpenses','addExpenses'],
+  Inventory: ['viewInventory','addStock','editInventory','viewCustomers'],
+};
+
+let _currentPermUser = null;
+let _userPermissions  = {}; // username → Set of keys
+
+function loadUserPermissions(username) {
+  _currentPermUser = username;
+  const panel   = document.getElementById('permUserPanel');
+  const emptyMsg = document.getElementById('permEmptyMsg');
+  const label   = document.getElementById('permUserLabel');
+  const boxes   = document.getElementById('permCheckboxes');
+  if (!username) { panel.style.display='none'; emptyMsg.style.display=''; return; }
+  panel.style.display = '';
+  emptyMsg.style.display = 'none';
+
+  // Find role from USERS_DB
+  const userEntry = USERS_DB[username];
+  const role = userEntry ? userEntry.role : 'Sales';
+  label.textContent = (userEntry ? userEntry.name : username) + ' · ' + role;
+
+  // Load saved perms or default to role defaults
+  const saved = _settings.userPermissions?.[username];
+  const active = saved ? new Set(saved) : new Set(ROLE_DEFAULTS[role] || []);
+  _userPermissions[username] = active;
+
+  boxes.innerHTML = ALL_PERMISSIONS.map(p => `
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:7px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--cream);user-select:none;">
+      <input type="checkbox" id="perm-${p.key}" ${active.has(p.key)?'checked':''} style="width:15px;height:15px;accent-color:var(--gold-dark);cursor:pointer;"
+        onchange="togglePerm('${username}','${p.key}',this.checked)">
+      <span style="font-size:13px;color:var(--text);">${p.label}</span>
+    </label>`).join('');
+}
+
+function togglePerm(username, key, checked) {
+  if (!_userPermissions[username]) _userPermissions[username] = new Set();
+  if (checked) _userPermissions[username].add(key);
+  else _userPermissions[username].delete(key);
+}
+
+async function saveUserPermissions() {
+  if (!_currentPermUser) return;
+  try {
+    const all = _settings.userPermissions || {};
+    all[_currentPermUser] = [...(_userPermissions[_currentPermUser] || [])];
+    await window.DB.saveSettings({ userPermissions: all });
+    _settings.userPermissions = all;
+    showToast('✓ Permissions saved for ' + (_currentPermUser));
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+function resetUserPermissions() {
+  if (!_currentPermUser) return;
+  const userEntry = USERS_DB[_currentPermUser];
+  const role = userEntry ? userEntry.role : 'Sales';
+  _userPermissions[_currentPermUser] = new Set(ROLE_DEFAULTS[role] || []);
+  // Re-tick checkboxes
+  ALL_PERMISSIONS.forEach(p => {
+    const cb = document.getElementById('perm-' + p.key);
+    if (cb) cb.checked = _userPermissions[_currentPermUser].has(p.key);
+  });
+  showToast('Reset to ' + role + ' defaults — click Save to apply');
+}
+
 
 // Update recentInwardBody after saving inventory
 function refreshRecentInward() {
@@ -3051,7 +3202,14 @@ async function loadSettings() {
   }
   if (_settings.rateHistory) {
     _rateHistory = _settings.rateHistory;
-    showKaratHistory('14K', null);
+  }
+  renderAllKaratHistory();
+  // Restore tier thresholds
+  if (_settings.tierThresholds) {
+    const t = _settings.tierThresholds;
+    if (t.silver) { if(document.getElementById('tierSilverMin')) document.getElementById('tierSilverMin').value = t.silver.min; if(document.getElementById('tierSilverMax')) document.getElementById('tierSilverMax').value = t.silver.max; }
+    if (t.gold)   { if(document.getElementById('tierGoldMin'))   document.getElementById('tierGoldMin').value   = t.gold.min;   if(document.getElementById('tierGoldMax'))   document.getElementById('tierGoldMax').value   = t.gold.max; }
+    if (t.platinum && document.getElementById('tierPlatinumMin')) document.getElementById('tierPlatinumMin').value = t.platinum.min;
   }
   if (_settings.company) {
     const co = _settings.company;
