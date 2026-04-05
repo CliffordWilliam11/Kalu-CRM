@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kalü Jewelry — Management System</title>
+<title>Kalü Jewelry — Management System v12</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -371,8 +371,99 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 .login-err { background:var(--danger-bg); color:var(--danger); border:1px solid #e5b8b8; border-radius:var(--radius); padding:9px 14px; font-size:13px; margin-bottom:14px; display:none; }
 
 </style>
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+<script>
+(function initFirebase() {
+  // Guard: Firebase SDKs may not load in restricted preview environments
+  if (typeof firebase === 'undefined') {
+    console.warn('Firebase SDK not loaded — running in offline/preview mode. Open file directly in a browser for full functionality.');
+    // Provide a no-op DB so the app doesn't crash in preview
+    window._firebaseOffline = true;
+    const _noop = async () => [];
+    const _noopSave = async () => 'preview-id-' + Date.now();
+    window.DB = {
+      saveCustomer: _noopSave, getCustomers: _noop, updateCustomer: _noop,
+      saveInventoryItem: _noopSave, getInventory: _noop, updateInventoryItem: _noop,
+      saveInvoice: _noopSave, getInvoices: _noop,
+      saveExpense: _noopSave, getExpenses: _noop, deleteExpense: _noop, deleteInventoryItem: _noop,
+      saveSettings: _noop, getSettings: async () => ({}),
+      clearSandbox: _noop
+    };
+    return;
+  }
+
+  try {
+    // Prevent double-init if script runs twice
+    if (!firebase.apps.length) {
+      firebase.initializeApp({
+        apiKey: "AIzaSyCmGbN36-SIWzUy-eOH6KNYb4U09ULpx3A",
+        authDomain: "kalu-crm.firebaseapp.com",
+        projectId: "kalu-crm",
+        storageBucket: "kalu-crm.firebasestorage.app",
+        messagingSenderId: "390332016556",
+        appId: "1:390332016556:web:300190a446b0d3464ffc09"
+      });
+    }
+    const _db = firebase.firestore();
+    function _root() { return window._sandboxMode ? 'sandbox' : 'live'; }
+    function _col(name) { return _db.collection(_root()).doc('data').collection(name); }
+    const _ts = () => firebase.firestore.FieldValue.serverTimestamp();
+
+    window.DB = {
+      saveCustomer: async (d) => {
+        if (d.id) { const {id,...r}=d; await _col('customers').doc(id).set({...r,updatedAt:_ts()},{merge:true}); return id; }
+        const ref = await _col('customers').add({...d,createdAt:_ts()}); return ref.id;
+      },
+      getCustomers: async () => { const s=await _col('customers').orderBy('createdAt','desc').get(); return s.docs.map(d=>({id:d.id,...d.data()})); },
+      updateCustomer: async (id,d) => { await _col('customers').doc(id).update({...d,updatedAt:_ts()}); },
+
+      saveInventoryItem: async (d) => {
+        if (d.id) { const {id,...r}=d; await _col('inventory').doc(id).set({...r,updatedAt:_ts()},{merge:true}); return id; }
+        const ref = await _col('inventory').add({...d,status:'In Stock',createdAt:_ts()}); return ref.id;
+      },
+      getInventory: async () => { const s=await _col('inventory').orderBy('createdAt','desc').get(); return s.docs.map(d=>({id:d.id,...d.data()})); },
+      updateInventoryItem: async (id,d) => { await _col('inventory').doc(id).update({...d,updatedAt:_ts()}); },
+
+      saveInvoice: async (d) => { const ref=await _col('invoices').add({...d,createdAt:_ts()}); return ref.id; },
+      getInvoices: async () => { const s=await _col('invoices').orderBy('createdAt','desc').get(); return s.docs.map(d=>({id:d.id,...d.data()})); },
+
+      saveExpense: async (d) => { const ref=await _col('expenses').add({...d,createdAt:_ts()}); return ref.id; },
+      getExpenses: async () => { const s=await _col('expenses').orderBy('createdAt','desc').get(); return s.docs.map(d=>({id:d.id,...d.data()})); },
+      deleteExpense: async (id) => { await _col('expenses').doc(id).delete(); },
+      deleteInventoryItem: async (id) => { await _col('inventory').doc(id).delete(); },
+
+      saveSettings: async (d) => { await _db.collection(_root()).doc('settings').set({...d,updatedAt:_ts()},{merge:true}); },
+      getSettings: async () => { const d=await _db.collection(_root()).doc('settings').get(); return d.exists?d.data():{}; },
+
+      clearSandbox: async () => {
+        for (const name of ['customers','inventory','invoices','expenses']) {
+          const snap = await _db.collection('sandbox').doc('data').collection(name).get();
+          const batch = _db.batch();
+          snap.docs.forEach(d=>batch.delete(d.ref));
+          await batch.commit();
+        }
+      }
+    };
+  } catch(e) {
+    console.error('Firebase init error:', e);
+  }
+})();
+</script>
 </head>
 <body>
+<!-- Sandbox Mode Banner -->
+<div id="sandboxBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:10000;background:#bf360c;color:#fff;text-align:center;padding:7px 16px;font-size:13px;font-weight:600;">
+  🧪 SANDBOX MODE — test data only, never affects live records &nbsp;·&nbsp;
+  <button onclick="clearSandboxData()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:#fff;padding:2px 12px;border-radius:4px;cursor:pointer;font-size:12px;margin:0 6px;">🗑 Clear All Test Data</button>
+  <button onclick="exitSandbox()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:#fff;padding:2px 12px;border-radius:4px;cursor:pointer;font-size:12px;">✕ Exit to Login</button>
+</div>
+
+<!-- Offline mode warning (shown if Firebase SDK blocked) -->
+<div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:10001;background:#e65100;color:#fff;text-align:center;padding:7px 16px;font-size:13px;font-weight:600;">
+  ⚠️ Preview mode — Firebase not connected. Download the file and open it directly in Chrome/Safari for live data.
+</div>
 
 <!-- ========== LOGIN SCREEN ========== -->
 <div class="login-screen" id="loginScreen">
@@ -394,6 +485,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
     <button class="btn btn-gold" style="width:100%;padding:11px;font-size:14px;font-weight:600;" onclick="doLogin()">Sign In</button>
     <div style="margin-top:16px;font-size:11px;color:var(--text3);">Kal&#252; Jewelry &middot; Authorized personnel only</div>
+    <div style="margin-top:10px;padding:8px 12px;background:var(--beige2);border-radius:6px;font-size:11px;color:var(--text3);text-align:left;">
+      🧪 <strong>Sandbox test login:</strong> username <code>test</code> / password <code>Test@Kalu1</code><br>
+      Test data stays completely separate from live data.
+    </div>
   </div>
 </div>
 
@@ -416,6 +511,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
     <span style="font-size:11px;color:var(--gold-pale);opacity:0.8;" id="topDateTime"></span>
+    <span id="fbStatus" title="Firebase status" style="width:8px;height:8px;border-radius:50%;background:#aaa;display:inline-block;" ></span>
     <div style="width:32px;height:32px;background:var(--gold-mid);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--gold-dark);">SA</div>
   </div>
 </div>
@@ -451,27 +547,54 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div style="font-size:13px;font-weight:600;color:var(--warning);margin-bottom:8px;">⚠ Possible duplicate — please check before saving:</div>
         <div id="dupMatches" style="display:flex;flex-direction:column;gap:6px;"></div>
       </div>
-      <div class="cust-top-grid">
+      <!-- Row 1: Name + Lead Source -->
+      <div class="grid-3" style="margin-bottom:12px;">
         <div class="form-group" style="margin-bottom:0;"><label>First Name *</label><input type="text" class="form-control" id="newClientFirst" placeholder="First name" oninput="checkDuplicateClient()"></div>
         <div class="form-group" style="margin-bottom:0;"><label>Last Name *</label><input type="text" class="form-control" id="newClientLast" placeholder="Last name" oninput="checkDuplicateClient()"></div>
-        <div class="form-group" style="margin-bottom:0;"><label>Phone *</label><input type="text" class="form-control" id="newClientPhone" placeholder="+1 (555) 000-0000" oninput="checkDuplicateClient()"></div>
-        <div class="form-group" style="margin-bottom:0;"><label>Email</label><input type="email" class="form-control" id="newClientEmail" placeholder="email@example.com" oninput="checkDuplicateClient()"></div>
         <div class="form-group" style="margin-bottom:0;"><label>Lead Source *</label>
           <select class="form-control" id="newClientSource" required>
             <option value="">-- Select --</option>
-            <option>Walk-in</option>
-            <option>Instagram</option>
-            <option>Facebook</option>
-            <option>Google</option>
-            <option>Events</option>
-            <option>Referral</option>
+            <option>Walk-in</option><option>Instagram</option><option>Facebook</option><option>Google</option><option>Events</option><option>Referral</option>
           </select>
         </div>
       </div>
-      <div class="grid-3">
-        <div class="form-group"><label>Address</label><input type="text" class="form-control" id="newClientAddr" placeholder="Street, City, State, ZIP"></div>
-        <div class="form-group"><label>Date of Birth</label><input type="date" class="form-control" id="newClientDOB"></div>
-        <div class="form-group"><label>Anniversary</label><input type="date" class="form-control" id="newClientAnniv"></div>
+      <!-- Row 2: Primary Phone + Primary Email -->
+      <div class="grid-2" style="margin-bottom:8px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Primary Phone *</label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <select class="form-control" id="newClientCC" style="width:100px;flex-shrink:0;padding:8px 6px;">
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+91">🇮🇳 +91</option>
+              <option value="+971">🇦🇪 +971</option>
+              <option value="+61">🇦🇺 +61</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+81">🇯🇵 +81</option>
+              <option value="+86">🇨🇳 +86</option>
+              <option value="+65">🇸🇬 +65</option>
+              <option value="+52">🇲🇽 +52</option>
+              <option value="+55">🇧🇷 +55</option>
+            </select>
+            <input type="tel" class="form-control" id="newClientPhone" placeholder="555 000-0000" oninput="checkDuplicateClient()" style="flex:1;">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Primary Email</label>
+          <input type="email" class="form-control" id="newClientEmail" placeholder="email@example.com" oninput="checkDuplicateClient()">
+        </div>
+      </div>
+      <!-- Additional contacts -->
+      <div id="extraContactsContainer"></div>
+      <button class="add-line-btn" onclick="addExtraContact()" style="margin-bottom:12px;">
+        <span style="font-size:18px;line-height:1;">+</span> Add Another Phone / Email
+      </button>
+      <!-- Row 3: Address + DOB + Anniversary -->
+      <div class="grid-3" style="margin-bottom:12px;">
+        <div class="form-group" style="margin-bottom:0;"><label>Address</label><input type="text" class="form-control" id="newClientAddr" placeholder="Street, City, State, ZIP"></div>
+        <div class="form-group" style="margin-bottom:0;"><label>Date of Birth</label><input type="date" class="form-control" id="newClientDOB"></div>
+        <div class="form-group" style="margin-bottom:0;"><label>Anniversary</label><input type="date" class="form-control" id="newClientAnniv"></div>
       </div>
       <div class="grid-2">
         <div class="form-group"><label>Notes / Preferences</label><input type="text" class="form-control" id="newClientNotes" placeholder="e.g. prefers 14K, size 6 ring"></div>
@@ -483,7 +606,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
       <div style="display:flex;align-items:center;gap:14px;margin-top:4px;flex-wrap:wrap;">
         <button class="btn btn-gold" onclick="saveNewClient()" style="min-width:160px;">💾 Save Client</button>
-        <div style="font-size:12px;color:var(--text3);">A unique Client ID will be assigned automatically on save (e.g. KLU-0048)</div>
+        <div style="font-size:12px;color:var(--text3);">A unique Client ID will be assigned automatically on save (e.g. KLU-0049)</div>
       </div>
     </div>
   </div>
@@ -505,7 +628,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </div>
         <select class="form-control" style="width:140px;"><option>All Tiers</option><option>Platinum</option><option>Gold</option><option>Silver</option></select>
         <select class="form-control" style="width:140px;"><option>All Sources</option><option>Walk-in</option><option>Instagram</option><option>Facebook</option><option>Google</option><option>Events</option></select>
-        <button class="btn btn-outline btn-sm" onclick="showToast('Exporting client list...')">↓ Export</button>
+        <button class="btn btn-outline btn-sm" onclick="exportClients()">↓ Export CSV</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -524,68 +647,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="clientsTableBody">
-            <tr>
-              <td><code style="font-size:11px;background:var(--beige2);padding:2px 5px;border-radius:3px;">KLU-0001</code></td>
-              <td style="font-weight:500;">Clifford B.</td>
-              <td>+1 (212) 555-0198</td>
-              <td style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="86e5eaefe0e0e9f4e2c6e3ebe7efeaa8e5e9eb">[email&#160;protected]</a></td>
-              <td><span class="badge badge-gray">Walk-in</span></td>
-              <td>8</td><td>14</td>
-              <td style="font-weight:600;">$24,800</td>
-              <td><span class="badge" style="background:#E8E0F0;color:#5A3E8A;">Platinum</span></td>
-              <td>Sarah A.</td>
-              <td><button class="btn btn-outline btn-sm" onclick="viewClient('KLU-0001')">View</button></td>
-            </tr>
-            <tr>
-              <td><code style="font-size:11px;background:var(--beige2);padding:2px 5px;border-radius:3px;">KLU-0002</code></td>
-              <td style="font-weight:500;">Anjali S.</td>
-              <td>+1 (310) 555-0241</td>
-              <td style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="13727d79727f7a53767e727a7f3d707c7e">[email&#160;protected]</a></td>
-              <td><span class="badge badge-gray">Instagram</span></td>
-              <td>4</td><td>6</td>
-              <td style="font-weight:600;">$9,400</td>
-              <td><span class="badge badge-gold">Gold</span></td>
-              <td>Mike R.</td>
-              <td><button class="btn btn-outline btn-sm" onclick="viewClient('KLU-0002')">View</button></td>
-            </tr>
-            <tr>
-              <td><code style="font-size:11px;background:var(--beige2);padding:2px 5px;border-radius:3px;">KLU-0003</code></td>
-              <td style="font-weight:500;">Robert M.</td>
-              <td>+1 (415) 555-0089</td>
-              <td style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="30425f5255424470555d51595c1e535f5d">[email&#160;protected]</a></td>
-              <td><span class="badge badge-gray">Google</span></td>
-              <td>3</td><td>5</td>
-              <td style="font-weight:600;">$6,200</td>
-              <td><span class="badge badge-gold">Gold</span></td>
-              <td>Sarah A.</td>
-              <td><button class="btn btn-outline btn-sm" onclick="viewClient('KLU-0003')">View</button></td>
-            </tr>
-            <tr>
-              <td><code style="font-size:11px;background:var(--beige2);padding:2px 5px;border-radius:3px;">KLU-0004</code></td>
-              <td style="font-weight:500;">Sunita P.</td>
-              <td>+1 (213) 555-0312</td>
-              <td style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="cdbeb8a3a4b9ac8da8a0aca4a1e3aea2a0">[email&#160;protected]</a></td>
-              <td><span class="badge badge-gray">Events</span></td>
-              <td>2</td><td>3</td>
-              <td style="font-weight:600;">$2,800</td>
-              <td><span class="badge badge-gray" style="background:var(--beige3);color:var(--text2);">Silver</span></td>
-              <td>Priya K.</td>
-              <td><button class="btn btn-outline btn-sm" onclick="viewClient('KLU-0004')">View</button></td>
-            </tr>
-            <tr>
-              <td><code style="font-size:11px;background:var(--beige2);padding:2px 5px;border-radius:3px;">KLU-0005</code></td>
-              <td style="font-weight:500;">David L.</td>
-              <td>+1 (323) 555-0174</td>
-              <td style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a4c0c5d2cdc0e4c1c9c5cdc88ac7cbc9">[email&#160;protected]</a></td>
-              <td><span class="badge badge-gray">Facebook</span></td>
-              <td>2</td><td>4</td>
-              <td style="font-weight:600;">$3,100</td>
-              <td><span class="badge badge-gray" style="background:var(--beige3);color:var(--text2);">Silver</span></td>
-              <td>James T.</td>
-              <td><button class="btn btn-outline btn-sm" onclick="viewClient('KLU-0005')">View</button></td>
-            </tr>
-          </tbody>
+          <tbody id="clientTableBody"><tr><td colspan="9" style="text-align:center;color:var(--text3);padding:28px;">Loading customers...</td></tr></tbody>
         </table>
       </div>
       <div style="margin-top:10px;font-size:12px;color:var(--text3);">
@@ -695,6 +757,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div class="form-group"><label>Invoice Date</label><input type="date" class="form-control" id="invDate"></div>
         <div class="form-group"><label>Sales Person</label><select class="form-control" id="salesPerson"><option>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option></select></div>
         <div class="form-group"><label>Billing Source *</label>
+          <input type="hidden" id="selectedClientId" value="">
           <select class="form-control" id="billingSource">
             <option value="">-- Select --</option>
             <option value="walkin">Walk-in</option>
@@ -833,7 +896,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </div>
         <select class="form-control" style="width:140px;"><option>All Time</option><option>This Month</option><option>Last Month</option><option>This Year</option></select>
         <select class="form-control" style="width:130px;"><option>All Sales</option><option>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option></select>
-        <button class="btn btn-outline btn-sm" onclick="showToast('Exporting invoices...')">↓ Export</button>
+        <button class="btn btn-outline btn-sm" onclick="exportInvoices()">↓ Export CSV</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -843,62 +906,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
               <th>Items</th><th>Subtotal</th><th>Tax</th><th>Total</th><th>Payment</th><th>Actions</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td><span class="badge badge-gold">INV-2025-0046</span></td>
-              <td>Apr 1, 2026</td><td style="font-weight:500;">Clifford B.</td><td>Sarah A.</td>
-              <td>2</td><td>$2,138</td><td>$203</td><td style="font-weight:600;color:var(--gold-dark);">$2,341</td>
-              <td><span class="badge badge-green">Cash</span></td>
-              <td><div style="display:flex;gap:4px;">
-                <button class="btn btn-outline btn-sm" onclick="showToast('Loading INV-2025-0046...')">View</button>
-                <button class="btn btn-outline btn-sm" onclick="showToast('🖨 Reprinting...')">Print</button>
-              </div></td>
-            </tr>
-            <tr>
-              <td><span class="badge badge-gold">INV-2025-0045</span></td>
-              <td>Mar 31, 2026</td><td style="font-weight:500;">Anjali S.</td><td>Mike R.</td>
-              <td>1</td><td>$980</td><td>$93</td><td style="font-weight:600;color:var(--gold-dark);">$1,073</td>
-              <td><span class="badge badge-blue">Credit Card</span></td>
-              <td><div style="display:flex;gap:4px;">
-                <button class="btn btn-outline btn-sm">View</button>
-                <button class="btn btn-outline btn-sm">Print</button>
-              </div></td>
-            </tr>
-            <tr>
-              <td><span class="badge badge-gold">INV-2025-0044</span></td>
-              <td>Mar 30, 2026</td><td style="font-weight:500;">Robert M.</td><td>Sarah A.</td>
-              <td>3</td><td>$4,200</td><td>$399</td><td style="font-weight:600;color:var(--gold-dark);">$4,599</td>
-              <td><span class="badge badge-gray">Bank Transfer</span></td>
-              <td><div style="display:flex;gap:4px;">
-                <button class="btn btn-outline btn-sm">View</button>
-                <button class="btn btn-outline btn-sm">Print</button>
-              </div></td>
-            </tr>
-            <tr>
-              <td><span class="badge badge-gold">INV-2025-0043</span></td>
-              <td>Mar 29, 2026</td><td style="font-weight:500;">Sunita P.</td><td>Priya K.</td>
-              <td>1</td><td>$320</td><td>$30</td><td style="font-weight:600;color:var(--gold-dark);">$350</td>
-              <td><span class="badge badge-green">Cash</span></td>
-              <td><div style="display:flex;gap:4px;">
-                <button class="btn btn-outline btn-sm">View</button>
-                <button class="btn btn-outline btn-sm">Print</button>
-              </div></td>
-            </tr>
-            <tr>
-              <td><span class="badge badge-gold">INV-2025-0042</span></td>
-              <td>Mar 28, 2026</td><td style="font-weight:500;">David L.</td><td>James T.</td>
-              <td>2</td><td>$1,450</td><td>$138</td><td style="font-weight:600;color:var(--gold-dark);">$1,588</td>
-              <td><span class="badge badge-blue">PayPal</span></td>
-              <td><div style="display:flex;gap:4px;">
-                <button class="btn btn-outline btn-sm">View</button>
-                <button class="btn btn-outline btn-sm">Print</button>
-              </div></td>
-            </tr>
-          </tbody>
+          <tbody id="invoiceHistoryBody"><tr><td colspan="10" style="text-align:center;color:var(--text3);padding:28px;">No invoices yet.</td></tr></tbody>
         </table>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:var(--text2);flex-wrap:wrap;gap:8px;">
-        <span>Showing 5 of 46 invoices · Month total: <strong>$48,320</strong></span>
+        <span id="invoiceHistoryStats">No invoices yet.</span>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-outline btn-sm">← Prev</button>
           <button class="btn btn-sm" style="background:var(--gold-mid);color:var(--gold-dark);border:1px solid var(--gold-mid);font-weight:600;">1</button>
@@ -915,16 +927,16 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <!-- ========== TAB 2: INVENTORY ========== -->
 <div id="tab-inventory" class="tab-pane">
   <div class="grid-4" style="margin-bottom:18px;">
-    <div class="metric-card"><div class="metric-label">Total SKUs</div><div class="metric-value">247</div><div class="metric-sub">↑ 12 this week</div></div>
-    <div class="metric-card"><div class="metric-label">Cost Value</div><div class="metric-value">$84,230</div><div class="metric-sub">At cost price</div></div>
-    <div class="metric-card"><div class="metric-label">List Value</div><div class="metric-value">$214,780</div><div class="metric-sub">At list price</div></div>
-    <div class="metric-card"><div class="metric-label">Avg Days in Stock</div><div class="metric-value">38</div><div class="metric-sub">23 items &gt;90 days</div></div>
+    <div class="metric-card"><div class="metric-label">Total SKUs</div><div class="metric-value" id="invValSKUs">—</div><div class="metric-sub" id="invValOld">Loading...</div></div>
+    <div class="metric-card"><div class="metric-label">Cost Value</div><div class="metric-value" id="invValCost">—</div><div class="metric-sub">At cost price</div></div>
+    <div class="metric-card"><div class="metric-label">List Value</div><div class="metric-value" id="invValList">—</div><div class="metric-sub">At list price</div></div>
+    <div class="metric-card"><div class="metric-label">Avg Days in Stock</div><div class="metric-value" id="invValDays">—</div><div class="metric-sub" id="invValOld">Loading...</div></div>
   </div>
 
   <div class="card">
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
       <div style="flex:1;min-width:180px;position:relative;">
-        <input type="text" class="form-control" placeholder="Search SKU, name, vendor, invoice #..." style="padding-right:36px;">
+        <input type="text" class="form-control" placeholder="Search SKU, name, vendor, invoice #..." style="padding-right:36px;" oninput="filterInventory(this.value)">
         <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text3);">🔍</span>
       </div>
       <select class="form-control" style="width:120px;"><option>All Karats</option><option>10K</option><option>14K</option><option>18K</option><option>22K</option><option>925</option><option>Platinum</option></select>
@@ -940,7 +952,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
           <option value="5000">5,000</option>
         </select>
       </div>
-      <button class="btn btn-outline btn-sm" onclick="showToast('Exporting inventory...')">↓ Export CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="exportInventory()">↓ Export CSV</button>
     </div>
 
     <div class="table-wrap">
@@ -961,90 +973,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <th>Actions</th>
           </tr>
         </thead>
-        <tbody id="inventoryTableBody">
-          <tr>
-            <td><code style="font-size:11px;background:var(--beige2);padding:2px 5px;border-radius:3px;">R-14K-001</code></td>
-            <td style="font-size:12px;color:var(--text2);">RGC-2025-112</td>
-            <td><div style="font-weight:500;">Diamond Solitaire Ring</div><div style="font-size:10px;color:var(--text3);">3.2g · Size 7</div></td>
-            <td><span class="badge badge-gold">Ring</span></td>
-            <td><span class="badge badge-blue">14K</span></td>
-            <td>3.2g</td>
-            <td>7</td>
-            <td>$820</td><td>$1,850</td>
-            <td><span style="color:var(--success);font-weight:500;">12</span></td>
-            <td><span class="badge badge-green">In Stock</span></td>
-            <td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="viewItemHistory('R-14K-001')">History</button><button class="btn btn-outline btn-sm">Edit</button></div></td>
-          </tr>
-          <tr>
-            <td><code style="font-size:11px;background:var(--beige2);padding:2px 5px;border-radius:3px;">B-925-002</code></td>
-            <td style="font-size:12px;color:var(--text2);">SSL-2025-047</td>
-            <td><div style="font-weight:500;">Tennis Bracelet</div><div style="font-size:10px;color:var(--text3);">8.1g · 7.5"</div></td>
-            <td><span class="badge badge-beige">Bracelet</span></td>
-            <td><span class="badge badge-gray">925</span></td>
-            <td>8.1g</td>
-            <td>7.5"</td>
-            <td>$95</td><td>$320</td>
-            <td><span style="color:var(--warning);font-weight:500;">45</span></td>
-            <td><span class="badge badge-green">In Stock</span></td>
-            <td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="viewItemHistory('B-925-002')">History</button><button class="btn btn-outline btn-sm">Edit</button></div></td>
-          </tr>
-          <tr>
-            <td><code style="font-size:11px;background:var(--beige2);padding:2px 5px;border-radius:3px;">N-10K-003</code></td>
-            <td style="font-size:12px;color:var(--text2);">GEL-2025-088</td>
-            <td><div style="font-weight:500;">Gold Chain Necklace</div><div style="font-size:10px;color:var(--text3);">5.8g · 18"</div></td>
-            <td><span class="badge badge-gray">Necklace</span></td>
-            <td><span class="badge badge-gold">10K</span></td>
-            <td>5.8g</td>
-            <td>18"</td>
-            <td>$154</td><td>$480</td>
-            <td><span style="color:var(--danger);font-weight:500;">98</span></td>
-            <td><span class="badge badge-green">In Stock</span></td>
-            <td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="viewItemHistory('N-10K-003')">History</button><button class="btn btn-outline btn-sm">Edit</button></div></td>
-          </tr>
-          <tr>
-            <td><code style="font-size:11px;background:var(--beige2);padding:2px 5px;border-radius:3px;">E-14K-004</code></td>
-            <td style="font-size:12px;color:var(--text2);">RGC-2025-098</td>
-            <td><div style="font-weight:500;">Diamond Hoop Earrings</div><div style="font-size:10px;color:var(--text3);">4.4g · 1.5"</div></td>
-            <td><span class="badge badge-gold">Earrings</span></td>
-            <td><span class="badge badge-blue">14K</span></td>
-            <td>4.4g</td>
-            <td>1.5"</td>
-            <td>$480</td><td>$1,200</td>
-            <td><span style="color:var(--success);font-weight:500;">7</span></td>
-            <td><span class="badge badge-red">Sold</span></td>
-            <td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="viewItemHistory('E-14K-004')">History</button><button class="btn btn-outline btn-sm">Edit</button></div></td>
-          </tr>
-          <tr>
-            <td><code style="font-size:11px;background:var(--beige2);padding:2px 5px;border-radius:3px;">P-18K-005</code></td>
-            <td style="font-size:12px;color:var(--text2);">MJI-2025-031</td>
-            <td><div style="font-weight:500;">Ruby Heart Pendant</div><div style="font-size:10px;color:var(--text3);">2.1g</div></td>
-            <td><span class="badge badge-gray">Pendant</span></td>
-            <td><span class="badge badge-gold">18K</span></td>
-            <td>2.1g</td>
-            <td>—</td>
-            <td>$380</td><td>$980</td>
-            <td><span style="color:var(--success);font-weight:500;">22</span></td>
-            <td><span class="badge badge-blue">Reserved</span></td>
-            <td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="viewItemHistory('P-18K-005')">History</button><button class="btn btn-outline btn-sm">Edit</button></div></td>
-          </tr>
-          <tr>
-            <td><code style="font-size:11px;background:var(--beige2);padding:2px 5px;border-radius:3px;">Bg-22K-006</code></td>
-            <td style="font-size:12px;color:var(--text2);">MJI-2025-019</td>
-            <td><div style="font-weight:500;">Antique Bangle Set</div><div style="font-size:10px;color:var(--text3);">28g · Set of 4</div></td>
-            <td><span class="badge badge-gold">Bangle</span></td>
-            <td><span class="badge badge-gold">22K</span></td>
-            <td>28g</td>
-            <td>—</td>
-            <td>$1,688</td><td>$4,200</td>
-            <td><span style="color:var(--success);font-weight:500;">5</span></td>
-            <td><span class="badge badge-green">In Stock</span></td>
-            <td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="viewItemHistory('Bg-22K-006')">History</button><button class="btn btn-outline btn-sm">Edit</button></div></td>
-          </tr>
-        </tbody>
+        <tbody id="inventoryTableBody"><tr><td colspan="12" style="text-align:center;color:var(--text3);padding:28px;">Loading inventory...</td></tr></tbody>
       </table>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:var(--text2);flex-wrap:wrap;gap:8px;">
-      <span>Showing 6 of 247 · Cost: <strong>$84,230</strong> · List Value: <strong>$214,780</strong></span>
+      <span id="inventoryStats">Loading inventory...</span>
       <div style="display:flex;gap:6px;">
         <button class="btn btn-outline btn-sm">← Prev</button>
         <button class="btn btn-sm" style="background:var(--gold-mid);color:var(--gold-dark);border:1px solid var(--gold-mid);font-weight:600;">1</button>
@@ -1133,29 +1066,16 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <input type="date" class="form-control" id="manualInwardDate">
       </div>
     </div>
-    <!-- Gold rate on inward day -->
-    <div class="gold-rates-grid">
-      <div class="form-group" style="margin-bottom:0;">
-        <label>10K Rate on Inward Day ($/g)</label>
-        <input type="number" class="form-control" id="inwardRate10K" placeholder="e.g. 26.50" step="0.01" oninput="recalcAllItems()">
-      </div>
-      <div class="form-group" style="margin-bottom:0;">
-        <label>14K Rate on Inward Day ($/g)</label>
-        <input type="number" class="form-control" id="inwardRate14K" placeholder="e.g. 37.10" step="0.01" oninput="recalcAllItems()">
-      </div>
-      <div class="form-group" style="margin-bottom:0;">
-        <label>18K Rate on Inward Day ($/g)</label>
-        <input type="number" class="form-control" id="inwardRate18K" placeholder="e.g. 49.40" step="0.01" oninput="recalcAllItems()">
-      </div>
-      <div class="form-group" style="margin-bottom:0;">
-        <label>925 Rate on Inward Day ($/g)</label>
-        <input type="number" class="form-control" id="inwardRate925" placeholder="e.g. 0.89" step="0.01" oninput="recalcAllItems()">
-      </div>
-    </div>
+    <!-- Gold rate inputs: hidden, auto-synced from Admin → Karat Pricing on load -->
+    <input type="hidden" id="inwardRate10K">
+    <input type="hidden" id="inwardRate14K">
+    <input type="hidden" id="inwardRate18K">
+    <input type="hidden" id="inwardRate925">
     <div class="alert alert-info" style="margin-bottom:12px;">
-      &#x2139; <strong>Making Charges %</strong> is auto-calculated as: (Cost Price &minus; Weight &times; Gold Rate) / (Weight &times; Gold Rate) &times; 100. 
-      <strong>List Price</strong> = Weight &times; Current Gold Rate &times; (1 + Making%) &times; (1 + Margin%).
-      Update gold rates daily in Admin &rarr; Karat Pricing and the list price refreshes automatically.
+      &#x2139; Gold rates are pulled automatically from <strong>Admin &rarr; Karat Pricing</strong>. Update them there daily and all list prices refresh. &nbsp;|&nbsp;
+      <strong>Net Gold Cost</strong> = Weight &times; Today's Rate &nbsp;|&nbsp;
+      <strong>Making %</strong> = Unit Cost &divide; Net Gold Cost &minus; 1 &nbsp;|&nbsp;
+      <strong>List Price</strong> = Net Gold Cost &times; (1 + Making%) &times; (1 + Margin%)
     </div>
 
     <!-- Item rows -->
@@ -1170,11 +1090,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
           <div class="form-group" style="margin-bottom:0;"><label>Category *</label><select class="form-control" style="font-size:13px;" onchange="recalcItem(this)"><option>Ring</option><option>Bracelet</option><option>Necklace</option><option>Earrings</option><option>Pendant</option><option>Bangle</option><option>Anklet</option></select></div>
           <div class="form-group" style="margin-bottom:0;"><label>Style / Type</label><input type="text" class="form-control" placeholder="e.g. Solitaire, Hoop" style="font-size:13px;"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Item Name *</label><input type="text" class="form-control" placeholder="Full name" style="font-size:13px;"></div>
-          <div class="form-group" style="margin-bottom:0;"><label>Karat *</label><select class="form-control" class="inward-karat" style="font-size:13px;" onchange="recalcItem(this)"><option>10K</option><option selected>14K</option><option>18K</option><option>22K</option><option>24K</option><option>925</option><option>Platinum</option></select></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Karat *</label><select class="form-control inward-karat" style="font-size:13px;" onchange="recalcItem(this)"><option>10K</option><option selected>14K</option><option>18K</option><option>22K</option><option>24K</option><option>925</option><option>Platinum</option></select></div>
           <div class="form-group" style="margin-bottom:0;"><label>Weight (g)</label><input type="number" class="form-control inward-weight" placeholder="0.00" step="0.01" style="font-size:13px;" oninput="recalcItem(this)"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Size / Length</label><input type="text" class="form-control" placeholder="e.g. 7, 18in" style="font-size:13px;"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Short Description</label><input type="text" class="form-control" placeholder="Brief note" style="font-size:13px;"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Unit Cost ($) *</label><input type="number" class="form-control inward-cost" placeholder="0.00" step="0.01" style="font-size:13px;" oninput="recalcItem(this)"></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Net Gold Cost ($) <span style="font-size:10px;color:var(--text3);">(auto)</span></label><input type="number" class="form-control inward-netgold" placeholder="—" step="0.01" style="font-size:13px;background:var(--beige2);" readonly tabindex="-1"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Making Charges % <span style="font-size:10px;color:var(--text3);">(auto)</span></label><input type="number" class="form-control inward-making" placeholder="—" step="0.01" style="font-size:13px;background:var(--beige2);" readonly tabindex="-1"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Margin % <span style="font-size:10px;color:var(--text3);">(manual)</span></label><input type="number" class="form-control inward-margin" placeholder="0" step="0.01" style="font-size:13px;" oninput="recalcItem(this)" value="0"></div>
           <div class="form-group" style="margin-bottom:0;"><label>List Price ($) <span style="font-size:10px;color:var(--text3);">(auto)</span></label><input type="number" class="form-control inward-list" placeholder="—" step="0.01" style="font-size:13px;background:var(--beige2);font-weight:600;" readonly tabindex="-1"></div>
@@ -1334,7 +1255,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <select class="form-control" style="width:160px;"><option>This Month</option><option>Last Month</option><option>This Quarter</option><option>This Year</option><option>Custom Range</option></select>
       <button class="btn btn-outline btn-sm" onclick="showToast('Generating PDF...')">↓ PDF</button>
-      <button class="btn btn-outline btn-sm" onclick="showToast('Exporting Excel...')">↓ Excel</button>
+      <button class="btn btn-outline btn-sm" onclick="exportExpensesCSV()">↓ Export CSV</button>
     </div>
   </div>
 
@@ -1342,7 +1263,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <div class="dash-grid-6">
     <div class="dash-metric" style="border-top:3px solid var(--gold-mid);">
       <div class="dash-metric-label">Revenue</div>
-      <div class="dash-metric-value" style="color:var(--success);">$48,320</div>
+      <div class="dash-metric-value" style="color:var(--success);" id="dashRevenue">$0</div>
       <div class="dash-metric-sub">↑ 14% vs last month</div>
     </div>
     <div class="dash-metric" style="border-top:3px solid var(--gold-mid);">
@@ -1581,12 +1502,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <div class="card">
         <div class="card-title">Price per Gram</div>
         <div class="table-wrap" style="margin-bottom:14px;"><table><thead><tr><th>Karat</th><th>$/Gram</th><th>Updated</th><th></th></tr></thead><tbody>
-          <tr><td><span class="badge badge-gold">10K</span></td><td><input type="number" value="26.50" class="form-control" style="width:100px;padding:5px 8px;" step="0.01"></td><td style="font-size:12px;color:var(--text2);">Jan 15</td><td><button class="btn btn-primary btn-sm" onclick="showToast('10K updated & applied')">Update</button></td></tr>
-          <tr><td><span class="badge badge-blue">14K</span></td><td><input type="number" value="37.10" class="form-control" style="width:100px;padding:5px 8px;" step="0.01"></td><td style="font-size:12px;color:var(--text2);">Jan 15</td><td><button class="btn btn-primary btn-sm" onclick="showToast('14K updated & applied')">Update</button></td></tr>
-          <tr><td><span class="badge badge-gray">18K</span></td><td><input type="number" value="49.40" class="form-control" style="width:100px;padding:5px 8px;" step="0.01"></td><td style="font-size:12px;color:var(--text2);">Jan 14</td><td><button class="btn btn-primary btn-sm" onclick="showToast('18K updated & applied')">Update</button></td></tr>
-          <tr><td><span class="badge badge-gold">22K</span></td><td><input type="number" value="60.20" class="form-control" style="width:100px;padding:5px 8px;" step="0.01"></td><td style="font-size:12px;color:var(--text2);">Jan 13</td><td><button class="btn btn-primary btn-sm" onclick="showToast('22K updated & applied')">Update</button></td></tr>
-          <tr><td><span class="badge badge-gray">925</span></td><td><input type="number" value="0.89" class="form-control" style="width:100px;padding:5px 8px;" step="0.01"></td><td style="font-size:12px;color:var(--text2);">Jan 15</td><td><button class="btn btn-primary btn-sm" onclick="showToast('925 updated & applied')">Update</button></td></tr>
-          <tr><td><span class="badge badge-blue">Platinum</span></td><td><input type="number" value="31.00" class="form-control" style="width:100px;padding:5px 8px;" step="0.01"></td><td style="font-size:12px;color:var(--text2);">Jan 12</td><td><button class="btn btn-primary btn-sm" onclick="showToast('Platinum updated & applied')">Update</button></td></tr>
+          <tr><td><span class="badge badge-gold">10K</span></td><td><input type="number" id="adminRate10K" value="26.50" class="form-control" style="width:100px;padding:5px 8px;" step="0.01"></td><td style="font-size:12px;color:var(--text2);">Jan 15</td><td><button class="btn btn-primary btn-sm" onclick="applyKaratRate('10K')">Update</button></td></tr>
+          <tr><td><span class="badge badge-blue">14K</span></td><td><input type="number" id="adminRate14K" value="37.10" class="form-control" style="width:100px;padding:5px 8px;" step="0.01"></td><td style="font-size:12px;color:var(--text2);">Jan 15</td><td><button class="btn btn-primary btn-sm" onclick="applyKaratRate('14K')">Update</button></td></tr>
+          <tr><td><span class="badge badge-gray">18K</span></td><td><input type="number" id="adminRate18K" value="49.40" class="form-control" style="width:100px;padding:5px 8px;" step="0.01"></td><td style="font-size:12px;color:var(--text2);">Jan 14</td><td><button class="btn btn-primary btn-sm" onclick="applyKaratRate('18K')">Update</button></td></tr>
+          <tr><td><span class="badge badge-gold">22K</span></td><td><input type="number" id="adminRate22K" value="60.20" class="form-control" style="width:100px;padding:5px 8px;" step="0.01"></td><td style="font-size:12px;color:var(--text2);">Jan 13</td><td><button class="btn btn-primary btn-sm" onclick="applyKaratRate('22K')">Update</button></td></tr>
+          <tr><td><span class="badge badge-gray">925</span></td><td><input type="number" id="adminRate925" value="0.89" class="form-control" style="width:100px;padding:5px 8px;" step="0.01"></td><td style="font-size:12px;color:var(--text2);">Jan 15</td><td><button class="btn btn-primary btn-sm" onclick="applyKaratRate('925')">Update</button></td></tr>
+          <tr><td><span class="badge badge-blue">Platinum</span></td><td><input type="number" id="adminRatePlatinum" value="31.00" class="form-control" style="width:100px;padding:5px 8px;" step="0.01"></td><td style="font-size:12px;color:var(--text2);">Jan 12</td><td><button class="btn btn-primary btn-sm" onclick="applyKaratRate('Platinum')">Update</button></td></tr>
         </tbody></table></div>
         <button class="btn btn-success" style="width:100%;" onclick="showToast('All karat prices updated & applied to full inventory')">Update All Prices Now</button>
       </div>
@@ -1662,21 +1583,110 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
 <!-- ========== MODALS ========== -->
 
+<!-- Customer Card Modal -->
+<div class="modal-backdrop" id="clientCardModal">
+  <div class="modal" style="max-width:680px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div class="modal-title" style="margin-bottom:4px;" id="ccName">Clifford B.</div>
+        <code style="font-size:12px;background:var(--beige2);padding:3px 8px;border-radius:4px;" id="ccId">KLU-0001</code>
+        <span id="ccTier" class="badge" style="margin-left:8px;background:#E8E0F0;color:#5A3E8A;">Platinum</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="openMergeModal()">⇄ Merge with Another Client</button>
+        <button class="btn btn-outline btn-sm" onclick="closeModal('clientCardModal')">Close</button>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div>
+        <div class="section-title">Contact</div>
+        <div class="form-group"><label>First Name</label><input type="text" class="form-control" id="ccFirst" value="Clifford"></div>
+        <div class="form-group"><label>Last Name</label><input type="text" class="form-control" id="ccLast" value="B."></div>
+        <div class="form-group"><label>Primary Phone</label><input type="text" class="form-control" id="ccPhone" value="+1 (212) 555-0198"></div>
+        <div class="form-group"><label>Email</label><input type="email" class="form-control" id="ccEmail" value="clifford@email.com"></div>
+        <div class="form-group"><label>Address</label><input type="text" class="form-control" id="ccAddr" placeholder="—"></div>
+      </div>
+      <div>
+        <div class="section-title">Details</div>
+        <div class="form-group"><label>Lead Source</label><select class="form-control" id="ccSource"><option selected>Walk-in</option><option>Instagram</option><option>Facebook</option><option>Google</option><option>Events</option><option>Referral</option></select></div>
+        <div class="form-group"><label>Date of Birth</label><input type="date" class="form-control" id="ccDOB"></div>
+        <div class="form-group"><label>Anniversary</label><input type="date" class="form-control" id="ccAnniv"></div>
+        <div class="form-group"><label>Assigned Sales</label><select class="form-control" id="ccSales"><option selected>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option></select></div>
+        <div class="form-group"><label>Notes / Preferences</label><input type="text" class="form-control" id="ccNotes" placeholder="—"></div>
+      </div>
+    </div>
+    <!-- Purchase history summary -->
+    <div style="background:var(--beige2);padding:12px 16px;border-radius:var(--radius);margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div><div class="metric-label">Invoices</div><div style="font-size:18px;font-weight:600;" id="ccInvoices">8</div></div>
+        <div><div class="metric-label">Units</div><div style="font-size:18px;font-weight:600;" id="ccUnits">14</div></div>
+        <div><div class="metric-label">Total Spend</div><div style="font-size:18px;font-weight:600;color:var(--gold-dark);" id="ccSpend">$24,800</div></div>
+        <div><div class="metric-label">Tier</div><div style="font-size:18px;font-weight:600;" id="ccTierVal">Platinum</div></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('clientCardModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveClientCard()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Merge Clients Modal -->
+<div class="modal-backdrop" id="mergeModal">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-title">Merge Client Records</div>
+    <div class="alert alert-warning">Fields that match exactly will be merged automatically. Different values will be shown side by side — choose which one to keep.</div>
+    <!-- Source client -->
+    <div style="background:var(--gold-pale);padding:12px 16px;border-radius:var(--radius);margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Client A (current)</div>
+      <div style="font-weight:600;" id="mergeClientA">Clifford B. · KLU-0001</div>
+    </div>
+    <!-- Target client search -->
+    <div class="form-group">
+      <label>Search Client B to merge into</label>
+      <div style="position:relative;">
+        <input type="text" class="form-control" id="mergeSearch" placeholder="Search by name, phone, or Client ID..." oninput="searchMergeTarget(this.value)" style="padding-right:34px;">
+        <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text3);">🔍</span>
+      </div>
+      <div id="mergeSearchResults" style="display:none;border:1px solid var(--border);border-radius:var(--radius);background:var(--cream);margin-top:4px;max-height:160px;overflow-y:auto;">
+        <div onclick="selectMergeTarget('KLU-0006','Cliff W.','+1 (212) 555-0199')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--beige)'" onmouseout="this.style.background=''">
+          <strong>Cliff W.</strong> <code style="font-size:11px;margin-left:6px;">KLU-0006</code>
+          <div style="font-size:12px;color:var(--text2);">+1 (212) 555-0199 · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f89b94919e9eb89d80999588949dd69b9795">[email&#160;protected]</a></div>
+        </div>
+      </div>
+    </div>
+    <div id="mergeCompareSection" style="display:none;">
+      <div class="section-title" style="margin-top:8px;">Choose Name to Keep</div>
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;flex:1;">
+          <input type="radio" name="mergeName" value="A" checked> <span id="mergeNameA" style="font-weight:500;">Clifford B.</span> <code style="font-size:11px;margin-left:4px;">KLU-0001</code>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;flex:1;">
+          <input type="radio" name="mergeName" value="B"> <span id="mergeNameB" style="font-weight:500;">Cliff W.</span> <code style="font-size:11px;margin-left:4px;">KLU-0006</code>
+        </label>
+      </div>
+      <div class="alert alert-info">All purchase history, invoices, and contact details from both records will be combined. Identical values are merged automatically. Where values differ, the admin can review and edit on the resulting client card.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('mergeModal')">Cancel</button>
+      <button class="btn btn-gold" id="confirmMergeBtn" style="display:none;" onclick="confirmMerge()">⇄ Confirm Merge</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- Item Search Modal -->
 <div class="modal-backdrop" id="itemSearchModal">
   <div class="modal">
     <div class="modal-title">Add Item from Inventory</div>
     <div style="position:relative;margin-bottom:14px;">
-      <input type="text" class="form-control" placeholder="Search SKU, name, karat..." style="padding-right:36px;">
+      <input type="text" class="form-control" placeholder="Search SKU, name, karat..." style="padding-right:36px;" oninput="filterBillingItems(this.value)" onfocus="filterBillingItems(this.value)">
       <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text3);">🔍</span>
     </div>
     <div class="table-wrap">
       <table><thead><tr><th>SKU</th><th>Item</th><th>Karat</th><th>Weight</th><th>List</th><th>Stock</th><th></th></tr></thead>
-      <tbody>
-        <tr><td><code style="font-size:11px;">R-14K-001</code></td><td>Diamond Solitaire Ring</td><td><span class="badge badge-blue">14K</span></td><td>3.2g</td><td>$1,850</td><td><span class="badge badge-green">1</span></td><td><button class="btn btn-gold btn-sm" onclick="addItemToInvoice('R-14K-001','Diamond Solitaire Ring 14K',1850)">Add</button></td></tr>
-        <tr><td><code style="font-size:11px;">N-10K-003</code></td><td>Gold Chain Necklace</td><td><span class="badge badge-gold">10K</span></td><td>5.8g</td><td>$480</td><td><span class="badge badge-green">3</span></td><td><button class="btn btn-gold btn-sm" onclick="addItemToInvoice('N-10K-003','Gold Chain Necklace 10K',480)">Add</button></td></tr>
-        <tr><td><code style="font-size:11px;">P-18K-005</code></td><td>Ruby Heart Pendant</td><td><span class="badge badge-gray">18K</span></td><td>2.1g</td><td>$980</td><td><span class="badge badge-green">1</span></td><td><button class="btn btn-gold btn-sm" onclick="addItemToInvoice('P-18K-005','Ruby Heart Pendant 18K',980)">Add</button></td></tr>
-        <tr><td><code style="font-size:11px;">Bg-22K-006</code></td><td>Antique Bangle Set</td><td><span class="badge badge-gold">22K</span></td><td>28g</td><td>$4,200</td><td><span class="badge badge-green">1</span></td><td><button class="btn btn-gold btn-sm" onclick="addItemToInvoice('Bg-22K-006','Antique Bangle Set 22K',4200)">Add</button></td></tr>
+      <tbody id="itemSearchTableBody">
+        <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:16px;">Search to find inventory items</td></tr>
       </tbody></table>
     </div>
     <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('itemSearchModal')">Cancel</button></div>
@@ -1693,6 +1703,64 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <tr><td>Jan 15</td><td><span class="badge badge-gray">Karat Rate</span></td><td>14K → $37.10/g applied</td><td>System</td></tr>
     </tbody></table></div>
     <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('historyModal')">Close</button></div>
+  </div>
+</div>
+
+<!-- Edit Inventory Modal -->
+<div class="modal-backdrop" id="editInventoryModal">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-title">✏️ Edit Inventory Item</div>
+    <input type="hidden" id="editInvId">
+    <div class="grid-3" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:0;"><label>SKU</label><input type="text" class="form-control" id="editInvSKU" readonly style="background:var(--beige2);"></div>
+      <div class="form-group" style="margin-bottom:0;"><label>Category</label>
+        <select class="form-control" id="editInvCategory">
+          <option>Ring</option><option>Bracelet</option><option>Necklace</option><option>Earrings</option><option>Pendant</option><option>Bangle</option><option>Anklet</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0;"><label>Karat</label>
+        <select class="form-control" id="editInvKarat">
+          <option>10K</option><option>14K</option><option>18K</option><option>22K</option><option>24K</option><option>925</option><option>Platinum</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:0;"><label>Item Name *</label><input type="text" class="form-control" id="editInvName"></div>
+      <div class="form-group" style="margin-bottom:0;"><label>Vendor</label><input type="text" class="form-control" id="editInvVendor"></div>
+    </div>
+    <div class="grid-3" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:0;"><label>Weight (g)</label><input type="number" class="form-control" id="editInvWeight" step="0.01"></div>
+      <div class="form-group" style="margin-bottom:0;"><label>Size / Length</label><input type="text" class="form-control" id="editInvSize"></div>
+      <div class="form-group" style="margin-bottom:0;"><label>Status</label>
+        <select class="form-control" id="editInvStatus">
+          <option>In Stock</option><option>Reserved</option><option>Sold</option><option>Returned</option><option>Repair</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:0;"><label>Unit Cost ($)</label><input type="number" class="form-control" id="editInvCost" step="0.01"></div>
+      <div class="form-group" style="margin-bottom:0;"><label>List Price ($)</label><input type="number" class="form-control" id="editInvList" step="0.01"></div>
+    </div>
+    <div class="form-group"><label>Description / Notes</label><textarea class="form-control" id="editInvDesc" rows="2"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" onclick="deleteInventoryItem()">🗑 Delete Item</button>
+      <button class="btn btn-outline" onclick="closeModal('editInventoryModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveEditedInventoryItem()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Invoice Modal -->
+<div class="modal-backdrop" id="viewInvoiceModal">
+  <div class="modal" style="max-width:680px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="modal-title" style="margin-bottom:0;" id="viewInvTitle">Invoice</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-gold btn-sm" onclick="printViewedInvoice()">🖨 Print</button>
+        <button class="btn btn-outline btn-sm" onclick="closeModal('viewInvoiceModal')">Close</button>
+      </div>
+    </div>
+    <div id="viewInvoiceContent" style="background:white;padding:20px;border-radius:8px;border:1px solid var(--border);font-size:13px;"></div>
   </div>
 </div>
 
@@ -1819,7 +1887,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <!-- Toast -->
 <div id="toast">Done</div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ===== DATA =====
 const lineItemData = {};
 let liCounter = 2;
@@ -1840,13 +1908,65 @@ let companyData = {
 document.addEventListener('DOMContentLoaded', () => {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('invDate').value = today;
-  // Set date on the first expense row
   const firstExpDate = document.querySelector('#exp-r-1 input[type=date]');
   if (firstExpDate) firstExpDate.value = today;
   if (document.getElementById('manualInwardDate')) document.getElementById('manualInwardDate').value = today;
+  syncInwardRatesFromAdmin();
   calcTotal();
   startClock();
+  // Show offline banner if Firebase SDK didn't load
+  if (window._firebaseOffline) {
+    document.getElementById('offlineBanner').style.display = 'block';
+  }
 });
+
+// Sync inward day rate inputs from Admin karat pricing values
+function syncInwardRatesFromAdmin() {
+  const map = {
+    'inwardRate10K': 'adminRate10K',
+    'inwardRate14K': 'adminRate14K',
+    'inwardRate18K': 'adminRate18K',
+    'inwardRate925': 'adminRate925'
+  };
+  Object.entries(map).forEach(([inwardId, adminId]) => {
+    const adminEl  = document.getElementById(adminId);
+    const inwardEl = document.getElementById(inwardId);
+    if (adminEl && inwardEl && adminEl.value) {
+      inwardEl.value = adminEl.value;
+    }
+  });
+  // Also update the topbar ticker
+  const t10 = document.getElementById('adminRate10K');
+  const t14 = document.getElementById('adminRate14K');
+  const t925= document.getElementById('adminRate925');
+  if (t10  && document.getElementById('tick10k'))  document.getElementById('tick10k').textContent  = '$' + parseFloat(t10.value).toFixed(2);
+  if (t14  && document.getElementById('tick14k'))  document.getElementById('tick14k').textContent  = '$' + parseFloat(t14.value).toFixed(2);
+  if (t925 && document.getElementById('tick925'))  document.getElementById('tick925').textContent  = '$' + parseFloat(t925.value).toFixed(2);
+}
+
+// Called when admin hits Update on a specific karat
+async function applyKaratRate(karat) {
+  syncInwardRatesFromAdmin();
+  recalcAllItems();
+  try {
+    const rates = { '10K': parseFloat(document.getElementById('adminRate10K')?.value)||0, '14K': parseFloat(document.getElementById('adminRate14K')?.value)||0, '18K': parseFloat(document.getElementById('adminRate18K')?.value)||0, '22K': parseFloat(document.getElementById('adminRate22K')?.value)||0, '925': parseFloat(document.getElementById('adminRate925')?.value)||0 };
+    await window.DB.saveSettings({ karatRates: rates });
+    _settings.karatRates = rates;
+    showToast(karat + ' rate saved & applied');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+// Also wire the "Update All" button
+async function updateAllKaratRates() {
+  syncInwardRatesFromAdmin();
+  recalcAllItems();
+  try {
+    const rates = { '10K': parseFloat(document.getElementById('adminRate10K')?.value)||0, '14K': parseFloat(document.getElementById('adminRate14K')?.value)||0, '18K': parseFloat(document.getElementById('adminRate18K')?.value)||0, '22K': parseFloat(document.getElementById('adminRate22K')?.value)||0, '925': parseFloat(document.getElementById('adminRate925')?.value)||0 };
+    await window.DB.saveSettings({ karatRates: rates });
+    _settings.karatRates = rates;
+    showToast('✓ All karat rates saved to all devices');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
 
 function startClock() {
   function tick() {
@@ -1915,23 +2035,26 @@ function removeLineItem(id) {
   if (el) { el.remove(); delete lineItemData[id]; calcTotal(); }
 }
 
-function addItemToInvoice(sku, name, price) {
+function addItemToInvoice(sku, name, price, cost) {
   liCounter++;
   const id = 'li-' + liCounter;
-  lineItemData[id] = { name, sku, price: parseFloat(price) };
+  lineItemData[id] = { name, sku, price: parseFloat(price), cost: parseFloat(cost)||0 };
   const container = document.getElementById('lineItemsContainer');
   const row = document.createElement('div');
   row.className = 'li-row'; row.id = id;
-  row.innerHTML = `<div><div style="font-size:13px;font-weight:500;">${name}</div><div style="font-size:10px;color:var(--text3);">SKU: ${sku}</div></div>
+  row.dataset.sku  = sku;
+  row.dataset.list = parseFloat(price);
+  row.dataset.cost = parseFloat(cost)||0;
+  row.innerHTML = `<div class="li-name"><div style="font-size:13px;font-weight:500;">${name}</div><div style="font-size:10px;color:var(--text3);">SKU: ${sku}</div></div>
     <input type="number" value="1" min="1" class="form-control li-qty" style="padding:5px 7px;font-size:12px;" onchange="calcTotal()">
     <div style="font-size:13px;color:var(--text2);" class="li-list">$${parseFloat(price).toFixed(2)}</div>
-    <input type="number" value="0" min="0" max="100" class="form-control disc-input" style="padding:5px 7px;font-size:12px;" onchange="calcTotal()">
-    <div class="line-sell" style="font-size:13px;font-weight:600;color:var(--gold-dark);">$${parseFloat(price).toFixed(2)}</div>
+    <input type="number" value="0" min="0" max="100" class="form-control li-disc" style="padding:5px 7px;font-size:12px;" onchange="calcTotal()">
+    <div class="li-sell line-sell" style="font-size:13px;font-weight:600;color:var(--gold-dark);">$${parseFloat(price).toFixed(2)}</div>
     <button class="btn btn-danger btn-icon" onclick="removeLineItem('${id}')">✕</button>`;
   container.appendChild(row);
   closeModal('itemSearchModal');
   calcTotal();
-  showToast('✓ Item added to invoice');
+  showToast('✓ ' + name + ' added to invoice');
 }
 
 function openItemSearch() { document.getElementById('itemSearchModal').classList.add('open'); }
@@ -1991,8 +2114,53 @@ function clearInvoice() {
   showToast('Invoice cleared');
 }
 
-function saveInvoice() {
-  showToast('💾 Invoice INV-2025-0047 saved');
+async function saveInvoice() {
+  const lineItems = [];
+  document.querySelectorAll('.li-row').forEach(row => {
+    if (!row.dataset.sku) return;
+    const qty  = parseInt(row.querySelector('input.li-qty')?.value) || 1;
+    const disc = parseFloat(row.querySelector('input.li-disc')?.value) || 0;
+    const list = parseFloat(row.dataset.list) || 0;
+    const sell = list * qty * (1 - disc/100);
+    lineItems.push({ sku: row.dataset.sku, name: row.querySelector('.li-name')?.textContent||'', qty, listPrice: list, discount: disc, sellPrice: parseFloat(sell.toFixed(2)), cost: parseFloat(row.dataset.cost)||0 });
+  });
+  if (lineItems.length === 0) { showToast('⚠ Add at least one item first'); return; }
+  const total    = parseFloat(document.getElementById('invTotal')?.textContent?.replace(/[^0-9.]/g,'')) || 0;
+  const subtotal = parseFloat(document.getElementById('invSubtotal')?.textContent?.replace(/[^0-9.]/g,'')) || 0;
+  const custName = document.getElementById('custName')?.value || 'Walk-in';
+  const custId   = document.getElementById('selectedClientId')?.value || '';
+  const invNum   = 'INV-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5);
+  const payments = [];
+  document.querySelectorAll('.pay-row').forEach(r => {
+    const mode = r.querySelector('select')?.value;
+    const amt  = parseFloat(r.querySelector('input[type=number]')?.value) || 0;
+    if (mode && amt > 0) payments.push({mode, amount: amt});
+  });
+  const invoiceData = { invoiceNum: invNum, date: document.getElementById('invDate')?.value||'', customerName: custName, customerId: custId, salesPerson: document.getElementById('invSales')?.value||'', billingSource: document.getElementById('billingSource')?.value||'', items: lineItems, subtotal, total, payments, status:'Paid', createdBy: currentUser?.name||'' };
+  try {
+    showToast('Saving invoice...');
+    await window.DB.saveInvoice(invoiceData);
+    document.getElementById('invoiceNumBadge').textContent = invNum;
+    if (document.getElementById('inv-num')) document.getElementById('inv-num').textContent = invNum;
+    // Mark items sold in inventory
+    for (const item of lineItems) {
+      const inv = _inventory.find(i => i.sku === item.sku);
+      if (inv) await window.DB.updateInventoryItem(inv.id, { status:'Sold', soldDate: invoiceData.date, soldPrice: item.sellPrice });
+    }
+    // Update customer spend + tier
+    if (custId) {
+      const cust = _customers.find(c => c.id === custId);
+      if (cust) {
+        const sp = (cust.totalSpend||0) + total;
+        const cnt= (cust.invoiceCount||0) + 1;
+        const tier = sp>=20000?'Platinum':sp>=8000?'Gold':'Silver';
+        await window.DB.updateCustomer(custId, { totalSpend: sp, invoiceCount: cnt, tier });
+      }
+    }
+    showToast('✓ Invoice ' + invNum + ' saved');
+    await loadAllData();
+    openPrintPreview();
+  } catch(e) { showToast('⚠ ' + e.message); console.error(e); }
 }
 
 function handleIdDoc(input) {
@@ -2146,6 +2314,7 @@ function addManualInwardRow() {
     <div class="form-group" style="margin-bottom:0;"><label>Size / Length</label><input type="text" class="form-control" placeholder="e.g. 7, 18in" style="font-size:13px;"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Short Description</label><input type="text" class="form-control" placeholder="Brief note" style="font-size:13px;"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Unit Cost ($) *</label><input type="number" class="form-control inward-cost" placeholder="0.00" step="0.01" style="font-size:13px;" oninput="recalcItem(this)"></div>
+    <div class="form-group" style="margin-bottom:0;"><label>Net Gold Cost ($) <span style="font-size:10px;color:var(--text3);">(auto)</span></label><input type="number" class="form-control inward-netgold" placeholder="—" step="0.01" style="font-size:13px;background:var(--beige2);" readonly tabindex="-1"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Making Charges % <span style="font-size:10px;color:var(--text3);">(auto)</span></label><input type="number" class="form-control inward-making" placeholder="—" step="0.01" style="font-size:13px;background:var(--beige2);" readonly tabindex="-1"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Margin % <span style="font-size:10px;color:var(--text3);">(manual)</span></label><input type="number" class="form-control inward-margin" placeholder="0" step="0.01" value="0" style="font-size:13px;" oninput="recalcItem(this)"></div>
     <div class="form-group" style="margin-bottom:0;"><label>List Price ($) <span style="font-size:10px;color:var(--text3);">(auto)</span></label><input type="number" class="form-control inward-list" placeholder="—" step="0.01" style="font-size:13px;background:var(--beige2);font-weight:600;" readonly tabindex="-1"></div>
@@ -2171,11 +2340,47 @@ function renumberInwardRows() {
 
 function openVendorModal() { document.getElementById('vendorModal').classList.add('open'); }
 
-function confirmManualInwardInline() {
+async function confirmManualInwardInline() {
   const vendor = document.getElementById('manualVendorName').value;
   const invNum = document.getElementById('manualVendorInv').value;
-  if (!vendor || vendor === '-- Select Vendor --') { showToast('⚠ Please select a vendor'); return; }
-  showToast('✓ Items saved to inventory · Vendor: ' + vendor + ' · Inv#: ' + invNum);
+  const inDate = document.getElementById('manualInwardDate').value;
+  if (!vendor || vendor === '-- Select Vendor --') { showToast('⚠ Select a vendor'); return; }
+  if (!invNum) { showToast('⚠ Enter vendor invoice number'); return; }
+  const rows = document.querySelectorAll('.inward-item');
+  if (!rows.length) { showToast('⚠ No items to save'); return; }
+  const items = []; let err = false;
+  rows.forEach((row, idx) => {
+    const itemName = row.querySelector('input[placeholder="Full name"]')?.value?.trim() || '';
+    const category = row.querySelector('select')?.value || 'Ring';
+    const karat    = row.querySelector('.inward-karat')?.value || '14K';
+    const weight   = parseFloat(row.querySelector('.inward-weight')?.value) || 0;
+    const cost     = parseFloat(row.querySelector('.inward-cost')?.value) || 0;
+    const making   = parseFloat(row.querySelector('.inward-making')?.value) || 0;
+    const margin   = parseFloat(row.querySelector('.inward-margin')?.value) || 0;
+    const listPrice= parseFloat(row.querySelector('.inward-list')?.value) || cost;
+    const netGold  = parseFloat(row.querySelector('.inward-netgold')?.value) || 0;
+    const size     = row.querySelector('input[placeholder*="7, 18in"]')?.value || '';
+    const style    = row.querySelector('input[placeholder*="Solitaire"]')?.value || '';
+    const desc     = row.querySelector('input[placeholder="Brief note"]')?.value || '';
+    const qty      = parseInt(row.querySelector('input[min="1"]')?.value) || 1;
+    if (!itemName) { showToast('⚠ Item '+(idx+1)+': enter item name'); err=true; return; }
+    if (cost <= 0) { showToast('⚠ Item '+(idx+1)+': enter unit cost'); err=true; return; }
+    const sku = category[0].toUpperCase()+'-'+karat+'-'+String(Date.now()).slice(-5);
+    items.push({ sku, itemName, category, karat, weight, size, style, desc, cost, making, margin, listPrice, netGold, qty, vendor, vendorInv: invNum, inwardDate: inDate, createdBy: currentUser?.name||'' });
+  });
+  if (err) return;
+  try {
+    showToast('Saving '+items.length+' item(s)...');
+    for (const item of items) {
+      for (let q=0; q<item.qty; q++) await window.DB.saveInventoryItem({...item, qty:1});
+    }
+    showToast('✓ '+items.length+' item(s) added to inventory');
+    document.getElementById('manualVendorName').value = '-- Select Vendor --';
+    document.getElementById('manualVendorInv').value = '';
+    document.getElementById('manualInwardRowsContainer').innerHTML = '';
+    mirCounter = 0; addManualInwardRow();
+    await loadInventory();
+  } catch(e) { showToast('⚠ ' + e.message); console.error(e); }
 }
 
 // ===== STOCK INWARD PRICING CALCULATIONS =====
@@ -2196,37 +2401,42 @@ function recalcItem(triggerEl) {
   const item = triggerEl.closest('.inward-item');
   if (!item) return;
 
-  const karatEl  = item.querySelector('.inward-karat, select[onchange*="recalcItem"]');
+  const karatEl  = item.querySelector('.inward-karat') || item.querySelector('select[onchange*="recalcItem"]');
   const weightEl = item.querySelector('.inward-weight');
   const costEl   = item.querySelector('.inward-cost');
+  const netGoldEl= item.querySelector('.inward-netgold');
   const makingEl = item.querySelector('.inward-making');
   const marginEl = item.querySelector('.inward-margin');
   const listEl   = item.querySelector('.inward-list');
 
-  if (!karatEl || !weightEl || !costEl || !makingEl || !marginEl || !listEl) return;
+  if (!makingEl || !marginEl || !listEl) return;
 
-  const karat    = karatEl.value;
-  const weight   = parseFloat(weightEl.value) || 0;
-  const cost     = parseFloat(costEl.value) || 0;
+  const karat    = karatEl ? karatEl.value : '14K';
+  const weight   = parseFloat(weightEl ? weightEl.value : 0) || 0;
+  const cost     = parseFloat(costEl ? costEl.value : 0) || 0;
   const margin   = parseFloat(marginEl.value) || 0;
-  const goldRate = getInwardRate(karat);  // $/g on inward day
+  const goldRate = getInwardRate(karat);
 
-  // Making charges % = (Cost - Weight × GoldRate) / (Weight × GoldRate) × 100
+  // ── Net Gold Cost = Weight × Inward Day Gold Rate  (=W8*X8)
+  const netGold = weight * goldRate;
+  if (netGoldEl) netGoldEl.value = (netGold > 0) ? netGold.toFixed(2) : '';
+
+  // ── Making Charges % = Unit Cost / Net Gold Cost − 1  (=V2/W2-1)
   let makingPct = 0;
-  if (goldRate > 0 && weight > 0) {
-    const metalValue = weight * goldRate;
-    makingPct = metalValue > 0 ? ((cost - metalValue) / metalValue) * 100 : 0;
-    makingEl.value = makingPct.toFixed(2);
+  if (goldRate > 0 && weight > 0 && cost > 0) {
+    makingPct = (cost / netGold) - 1;
+    makingEl.value = (makingPct * 100).toFixed(2);
   } else {
     makingEl.value = '';
   }
 
-  // List Price = Weight × CurrentGoldRate × (1 + Making%/100) × (1 + Margin%/100)
-  // Use inward day rate as current rate proxy — in production this pulls from karat pricing admin
-  const currentRate = goldRate > 0 ? goldRate : 0;
-  if (currentRate > 0 && weight > 0) {
-    const listPrice = weight * currentRate * (1 + makingPct / 100) * (1 + margin / 100);
+  // ── List Price = Net Gold Cost × (1 + Making%) × (1 + Margin%)
+  //    = weight × todayRate × (1 + making%) × (1 + margin%)
+  if (goldRate > 0 && weight > 0 && cost > 0) {
+    const listPrice = netGold * (1 + makingPct) * (1 + margin / 100);
     listEl.value = listPrice.toFixed(2);
+  } else if (cost > 0 && margin >= 0) {
+    listEl.value = (cost * (1 + margin / 100)).toFixed(2);
   } else {
     listEl.value = '';
   }
@@ -2242,22 +2452,35 @@ function recalcAllItems() {
 
 // ===== CUSTOMERS TAB =====
 let clientIdCounter = 48;
+let extraContactCount = 0;
+let currentViewClientId = null;
 
 // Sample client data for duplicate detection
 const existingClients = [
-  { id:'KLU-0001', first:'Clifford', last:'B', phone:'+1 (212) 555-0198', email:'clifford@email.com' },
-  { id:'KLU-0002', first:'Anjali',   last:'S', phone:'+1 (310) 555-0241', email:'anjali@email.com' },
-  { id:'KLU-0003', first:'Robert',   last:'M', phone:'+1 (415) 555-0089', email:'robert@email.com' },
-  { id:'KLU-0004', first:'Sunita',   last:'P', phone:'+1 (213) 555-0312', email:'sunita@email.com' },
-  { id:'KLU-0005', first:'David',    last:'L', phone:'+1 (323) 555-0174', email:'david@email.com' }
+  { id:'KLU-0001', first:'Clifford', last:'B',  phone:'2125550198', email:'clifford@email.com',  invoices:8,  units:14, spend:24800, tier:'Platinum', source:'Walk-in',  sales:'Sarah A.' },
+  { id:'KLU-0002', first:'Anjali',   last:'S',  phone:'3105550241', email:'anjali@email.com',    invoices:4,  units:6,  spend:9400,  tier:'Gold',     source:'Instagram', sales:'Mike R.' },
+  { id:'KLU-0003', first:'Robert',   last:'M',  phone:'4155550089', email:'robert@email.com',    invoices:3,  units:5,  spend:6200,  tier:'Gold',     source:'Google',    sales:'Sarah A.' },
+  { id:'KLU-0004', first:'Sunita',   last:'P',  phone:'2135550312', email:'sunita@email.com',    invoices:2,  units:3,  spend:2800,  tier:'Silver',   source:'Events',    sales:'Priya K.' },
+  { id:'KLU-0005', first:'David',    last:'L',  phone:'3235550174', email:'david@email.com',     invoices:2,  units:4,  spend:3100,  tier:'Silver',   source:'Facebook',  sales:'James T.' }
 ];
+
+function normalizePhone(raw) {
+  // Strip all non-digit characters
+  return (raw || '').replace(/\D/g, '');
+}
+
+function emailLocal(email) {
+  // Return just the part before @ for matching
+  return (email || '').split('@')[0].toLowerCase();
+}
 
 function strSimilarity(a, b) {
   if (!a || !b) return 0;
   a = a.toLowerCase().replace(/\s+/g,'');
   b = b.toLowerCase().replace(/\s+/g,'');
   if (a === b) return 1;
-  if (a.includes(b) || b.includes(a)) return 0.85;
+  if (a.includes(b) || b.includes(a)) return 0.88;
+  // Levenshtein-lite: count matching chars
   let matches = 0;
   const shorter = a.length < b.length ? a : b;
   const longer  = a.length < b.length ? b : a;
@@ -2270,71 +2493,208 @@ function strSimilarity(a, b) {
 function checkDuplicateClient() {
   const first = (document.getElementById('newClientFirst').value || '').trim();
   const last  = (document.getElementById('newClientLast').value  || '').trim();
-  const phone = (document.getElementById('newClientPhone').value || '').trim();
+  const rawPhone = (document.getElementById('newClientPhone').value || '').trim();
   const email = (document.getElementById('newClientEmail').value || '').trim();
-  const alert = document.getElementById('dupAlert');
+  const alertEl = document.getElementById('dupAlert');
   const matchBox = document.getElementById('dupMatches');
 
-  if (!first && !phone && !email) { alert.style.display='none'; return; }
+  const phone = normalizePhone(rawPhone);
+  const emailLoc = emailLocal(email);
+
+  if (!first && !phone && !emailLoc) { alertEl.style.display='none'; return; }
 
   const scored = existingClients.map(c => {
-    // Score: phone first (highest weight), then email, then name
-    const phoneScore = phone ? strSimilarity(phone, c.phone) * 3 : 0;
-    const emailScore = email ? strSimilarity(email, c.email) * 2 : 0;
-    const nameScore  = (first || last) ? strSimilarity(first + last, c.first + c.last) : 0;
-    const total = phoneScore + emailScore + nameScore;
-    const max   = (phone ? 3 : 0) + (email ? 2 : 0) + (first||last ? 1 : 0) || 1;
-    return { client: c, pct: total / max };
-  }).filter(s => s.pct >= 0.75).sort((a,b) => b.pct - a.pct);
+    // Phone: 90% threshold, strip special chars
+    const phoneSim = phone && c.phone ? strSimilarity(phone, c.phone) : 0;
+    const phonePasses = phoneSim >= 0.9;
 
-  if (scored.length === 0) { alert.style.display='none'; return; }
+    // Email: 90% match on local part only
+    const emailSim = emailLoc ? strSimilarity(emailLoc, emailLocal(c.email)) : 0;
+    const emailPasses = emailSim >= 0.9;
+
+    // Name: 85% match on either first OR last independently
+    const firstSim = first ? strSimilarity(first, c.first) : 0;
+    const lastSim  = last  ? strSimilarity(last,  c.last)  : 0;
+    const namePasses = firstSim >= 0.85 || lastSim >= 0.85;
+
+    // Score: phone weighted highest (3), email (2), name (1)
+    let score = 0, maxScore = 0;
+    if (phone)        { score += phoneSim * 3;   maxScore += 3; }
+    if (emailLoc)     { score += emailSim * 2;   maxScore += 2; }
+    if (first || last){ score += Math.max(firstSim, lastSim); maxScore += 1; }
+
+    const pct = maxScore > 0 ? score / maxScore : 0;
+    const anyPasses = phonePasses || emailPasses || namePasses;
+    return { client: c, pct, phonePasses, emailPasses, namePasses, anyPasses };
+  }).filter(s => s.anyPasses && s.pct >= 0.7)
+    .sort((a,b) => b.pct - a.pct)
+    .slice(0, 10);
+
+  if (scored.length === 0) { alertEl.style.display='none'; return; }
 
   matchBox.innerHTML = scored.map(s => {
     const pct = Math.round(s.pct * 100);
     const c = s.client;
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);">
+    const matchReasons = [];
+    if (s.phonePasses) matchReasons.push('phone');
+    if (s.emailPasses) matchReasons.push('email');
+    if (s.namePasses)  matchReasons.push('name');
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);flex-wrap:wrap;gap:8px;">
       <div><strong>${c.first} ${c.last}</strong> <code style="font-size:11px;margin-left:6px;">${c.id}</code>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px;">${c.phone} &middot; ${c.email}</div>
+        <span style="font-size:11px;color:var(--text3);margin-left:6px;">matched on: ${matchReasons.join(', ')}</span>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px;">+${c.phone} &middot; ${c.email}</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span class="badge" style="background:var(--warning-bg);color:var(--warning);">${pct}% match</span>
-        <button class="btn btn-outline btn-sm" onclick="document.getElementById('dupAlert').style.display='none';showToast('Using existing client ${c.id}')">Use This Client</button>
+        <button class="btn btn-outline btn-sm" onclick="useExistingClient('${c.id}')">Use This Client</button>
       </div>
     </div>`;
   }).join('');
 
-  alert.style.display = 'block';
+  alertEl.style.display = 'block';
 }
 
-function saveNewClient() {
+function useExistingClient(id) {
+  document.getElementById('dupAlert').style.display = 'none';
+  showToast('Using existing client ' + id);
+}
+
+function addExtraContact() {
+  extraContactCount++;
+  const cid = 'extraContact-' + extraContactCount;
+  const container = document.getElementById('extraContactsContainer');
+  const div = document.createElement('div');
+  div.id = cid;
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 28px;gap:8px;align-items:flex-end;margin-bottom:8px;';
+  div.innerHTML = `
+    <div class="form-group" style="margin-bottom:0;">
+      <label style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;">Additional Phone</label>
+      <div style="display:flex;gap:6px;">
+        <select class="form-control" style="width:90px;flex-shrink:0;padding:8px 6px;font-size:13px;">
+          <option value="+1">🇺🇸 +1</option><option value="+44">🇬🇧 +44</option><option value="+91">🇮🇳 +91</option><option value="+971">🇦🇪 +971</option><option value="+61">🇦🇺 +61</option>
+        </select>
+        <input type="tel" class="form-control" placeholder="Phone number" style="flex:1;">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:0;">
+      <label style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;">Additional Email</label>
+      <input type="email" class="form-control" placeholder="email@example.com">
+    </div>
+    <button class="btn btn-danger btn-icon" onclick="document.getElementById('${cid}').remove()" style="margin-bottom:0;">&#x2715;</button>`;
+  container.appendChild(div);
+}
+
+async function saveNewClient() {
   const first  = document.getElementById('newClientFirst').value.trim();
   const last   = document.getElementById('newClientLast').value.trim();
   const source = document.getElementById('newClientSource').value;
+  const cc     = document.getElementById('newClientCC').value || '+1';
+  const phone  = document.getElementById('newClientPhone').value.trim();
   if (!first)  { showToast('⚠ First name is required'); return; }
-  if (!last)   { showToast('⚠ Last name is required');  return; }
+  if (!last)   { showToast('⚠ Last name is required'); return; }
   if (!source) { showToast('⚠ Lead Source is required'); return; }
-  clientIdCounter++;
-  const id = 'KLU-00' + clientIdCounter;
-  existingClients.push({
-    id, first, last,
-    phone: document.getElementById('newClientPhone').value,
-    email: document.getElementById('newClientEmail').value
-  });
-  showToast('✓ Client saved · ID: ' + id + ' · ' + first + ' ' + last);
-  ['newClientFirst','newClientLast','newClientPhone','newClientEmail','newClientAddr'].forEach(f => {
-    const el = document.getElementById(f); if (el) el.value = '';
-  });
-  document.getElementById('newClientSource').value = '';
-  document.getElementById('dupAlert').style.display = 'none';
-  toggleCollapse('newclient');
+  const data = { first, last, source, phone: cc.replace('+','') + normalizePhone(phone), email: document.getElementById('newClientEmail')?.value||'', address: document.getElementById('newClientAddr')?.value||'', notes: document.getElementById('newClientNotes')?.value||'', sales: document.getElementById('newClientSales')?.value||'', tier:'Silver', totalSpend:0, invoiceCount:0, createdBy: currentUser?.name||'' };
+  try {
+    showToast('Saving client...');
+    await window.DB.saveCustomer(data);
+    showToast('✓ Client saved · ' + first + ' ' + last);
+    ['newClientFirst','newClientLast','newClientPhone','newClientEmail','newClientAddr','newClientNotes'].forEach(f => { const el=document.getElementById(f); if(el) el.value=''; });
+    document.getElementById('newClientSource').value = '';
+    document.getElementById('dupAlert').style.display = 'none';
+    if (document.getElementById('extraContactsContainer')) document.getElementById('extraContactsContainer').innerHTML = '';
+    toggleCollapse('newclient');
+    await loadCustomers();
+  } catch(e) { showToast('⚠ ' + e.message); console.error(e); }
+}
+
+// ===== CLIENT CARD =====
+function viewClient(id) {
+  currentViewClientId = id;
+  const c = _customers.find(x => x.id === id) || existingClients.find(x => x.id === id);
+  if (!c) { showToast('Client not found'); return; }
+  document.getElementById('ccName').textContent   = (c.first||'') + ' ' + (c.last||'');
+  document.getElementById('ccId').textContent     = c.id;
+  document.getElementById('ccFirst').value        = c.first || '';
+  document.getElementById('ccLast').value         = c.last || '';
+  document.getElementById('ccPhone').value        = c.phone || '';
+  document.getElementById('ccEmail').value        = c.email || '';
+  document.getElementById('ccSource').value       = c.source || 'Walk-in';
+  document.getElementById('ccSales').value        = c.sales  || 'Sarah A.';
+  document.getElementById('ccNotes').value        = c.notes  || '';
+  document.getElementById('ccInvoices').textContent = c.invoiceCount || c.invoices || 0;
+  document.getElementById('ccUnits').textContent    = c.units || 0;
+  document.getElementById('ccSpend').textContent    = '$' + ((c.totalSpend||c.spend)||0).toLocaleString();
+  document.getElementById('ccTierVal').textContent  = c.tier || 'Silver';
+  const tierBadge = document.getElementById('ccTier');
+  if (tierBadge) { tierBadge.textContent = c.tier||'Silver'; tierBadge.style.background = c.tier==='Platinum'?'#E8E0F0':c.tier==='Gold'?'var(--gold-pale)':'var(--beige3)'; tierBadge.style.color = c.tier==='Platinum'?'#5A3E8A':c.tier==='Gold'?'var(--gold-dark)':'var(--text2)'; }
+  document.getElementById('clientCardModal').classList.add('open');
+}
+
+async function saveClientCard() {
+  if (!currentViewClientId) return;
+  const updates = {
+    first:  document.getElementById('ccFirst').value,
+    last:   document.getElementById('ccLast').value,
+    phone:  normalizePhone(document.getElementById('ccPhone').value),
+    email:  document.getElementById('ccEmail').value,
+    source: document.getElementById('ccSource').value,
+    sales:  document.getElementById('ccSales').value,
+    notes:  document.getElementById('ccNotes').value,
+  };
+  try {
+    await window.DB.updateCustomer(currentViewClientId, updates);
+    // Update local cache
+    const idx = _customers.findIndex(x => x.id === currentViewClientId);
+    if (idx > -1) _customers[idx] = { ..._customers[idx], ...updates };
+    closeModal('clientCardModal');
+    showToast('✓ Client updated');
+    renderCustomerTable(_customers);
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+// ===== MERGE =====
+function openMergeModal() {
+  const c = existingClients.find(x => x.id === currentViewClientId);
+  if (c) document.getElementById('mergeClientA').textContent = c.first + ' ' + c.last + ' · ' + c.id;
+  document.getElementById('mergeNameA').textContent = c ? (c.first + ' ' + c.last) : '';
+  document.getElementById('mergeCompareSection').style.display = 'none';
+  document.getElementById('confirmMergeBtn').style.display = 'none';
+  document.getElementById('mergeSearch').value = '';
+  document.getElementById('mergeSearchResults').style.display = 'none';
+  document.getElementById('mergeModal').classList.add('open');
+}
+
+function searchMergeTarget(val) {
+  const res = document.getElementById('mergeSearchResults');
+  res.style.display = val.length > 1 ? 'block' : 'none';
+}
+
+function selectMergeTarget(id, name, phone) {
+  document.getElementById('mergeSearch').value = name + ' · ' + id;
+  document.getElementById('mergeSearchResults').style.display = 'none';
+  document.getElementById('mergeNameB').textContent = name;
+  document.getElementById('mergeCompareSection').style.display = 'block';
+  document.getElementById('confirmMergeBtn').style.display = 'inline-flex';
+}
+
+function confirmMerge() {
+  const chosen = document.querySelector('input[name="mergeName"]:checked').value;
+  const keepName = chosen === 'A'
+    ? document.getElementById('mergeNameA').textContent
+    : document.getElementById('mergeNameB').textContent;
+  closeModal('mergeModal');
+  closeModal('clientCardModal');
+  showToast('✓ Clients merged · Keeping name: ' + keepName + ' · History combined');
 }
 
 function filterClients(val) {
-  // In production this filters the client table
-}
-
-function viewClient(id) {
-  showToast('Opening client profile ' + id + '...');
+  val = (val||'').toLowerCase();
+  const filtered = val ? _customers.filter(c =>
+    (c.first+' '+c.last).toLowerCase().includes(val) ||
+    (c.phone||'').includes(val) ||
+    (c.email||'').toLowerCase().includes(val)
+  ) : _customers;
+  renderCustomerTable(filtered);
 }
 
 // ===== BILLING CLIENT MODE =====
@@ -2408,31 +2768,29 @@ function removeExpRow(id) {
   else { showToast('At least one row required'); }
 }
 
-function submitAllExpenses() {
+async function submitAllExpenses() {
   const rows = document.querySelectorAll('.exp-row');
-  let count = 0;
-  rows.forEach(row => {
-    const desc = row.querySelectorAll('input[type=text]')[0];
-    const amt = row.querySelectorAll('input[type=number]')[0];
-    if (desc && desc.value && amt && amt.value) {
-      const date = row.querySelectorAll('input[type=date]')[0]?.value || 'Today';
-      const dateDisplay = date ? new Date(date + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : 'Today';
-      const cat = row.querySelectorAll('select')[0]?.value || 'Misc';
-      const member = row.querySelectorAll('select')[1]?.value || '—';
-      const tbody = document.getElementById('expenseBody');
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${dateDisplay}</td><td><span class="badge badge-gray">${cat.split('/')[0].trim()}</span></td><td>${desc.value}</td><td style="font-weight:500;">$${parseFloat(amt.value).toFixed(2)}</td><td>${member}</td><td>—</td><td><button class="btn btn-danger btn-icon btn-sm" onclick="this.closest('tr').remove();showToast('Entry removed')">✕</button></td>`;
-      tbody.insertBefore(tr, tbody.firstChild);
-      count++;
-    }
+  const expenses = []; let err = false;
+  rows.forEach((row, idx) => {
+    const date   = row.querySelector('input[type=date]')?.value || new Date().toISOString().split('T')[0];
+    const cat    = row.querySelectorAll('select')[0]?.value || 'Misc';
+    const member = row.querySelectorAll('select')[1]?.value || '';
+    const desc   = row.querySelector('input[type=text]')?.value?.trim() || '';
+    const amount = parseFloat(row.querySelector('input[type=number]')?.value) || 0;
+    if (!desc) { showToast('⚠ Row '+(idx+1)+': enter a description'); err=true; return; }
+    if (amount <= 0) { showToast('⚠ Row '+(idx+1)+': enter an amount'); err=true; return; }
+    expenses.push({ date, category: cat, description: desc, amount, member, createdBy: currentUser?.name||'' });
   });
-  if (count === 0) { showToast('⚠ Fill in at least one row'); return; }
-  showToast('✓ ' + count + ' expense' + (count > 1 ? 's' : '') + ' submitted');
-  // Reset to single row
-  document.getElementById('expenseRowsContainer').innerHTML = '';
-  expRowCounter = 0;
-  addExpenseRow();
-  document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
+  if (err) return;
+  try {
+    showToast('Saving...');
+    for (const exp of expenses) await window.DB.saveExpense(exp);
+    showToast('✓ '+expenses.length+' expense(s) saved');
+    document.getElementById('expenseRowsContainer').innerHTML = '';
+    expRowCounter = 0; addExpenseRow();
+    document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
+    await loadExpenses(); refreshDashboard();
+  } catch(e) { showToast('⚠ ' + e.message); console.error(e); }
 }
 
 function showExpensePanel(title, meta) {
@@ -2511,8 +2869,8 @@ function updateCompanyPreview() {
   document.getElementById('logoDisplay').textContent = name.charAt(0).toUpperCase();
 }
 
-function saveCompanyDetails() {
-  companyData.name = document.getElementById('companyName').value || 'KAL&#220;';
+async function saveCompanyDetails() {
+  companyData.name = document.getElementById('companyName').value || 'KALÜ';
   companyData.addr1 = document.getElementById('companyAddr1').value;
   companyData.addr2 = document.getElementById('companyAddr2').value;
   companyData.phone = document.getElementById('companyPhone').value;
@@ -2521,7 +2879,11 @@ function saveCompanyDetails() {
   companyData.footer = document.getElementById('companyFooter').value;
   document.getElementById('companyNameDisplay').textContent = companyData.name;
   document.getElementById('logoDisplay').textContent = companyData.name.charAt(0);
-   showToast('✓ Company details saved');
+  try {
+    await window.DB.saveSettings({ company: companyData });
+    _settings.company = companyData;
+    showToast('✓ Company details saved');
+  } catch(e) { showToast('⚠ ' + e.message); }
 }
 
 function handleLogoUpload(input) {
@@ -2554,27 +2916,43 @@ function showToast(msg) {
 
 // ===== LOGIN =====
 // Credentials: username → password (hashed as plain for this prototype)
+// ── In-memory data caches (populated from Firebase on login) ──
+let _inventory = [];
+let _invoices  = [];
+let _customers = [];
+let _expenses  = [];
+let _settings  = {};
+
 const USERS_DB = {
   'masteradmin': { pass: 'Kalu@2025!MA', role: 'MasterAdmin', name: 'MasterAdmin' },
-  'sarah.a':     { pass: 'Kalu@Sarah1',   role: 'Admin',       name: 'Sarah A.' },
-  'mike.r':      { pass: 'Kalu@Mike01',   role: 'Sales',       name: 'Mike R.' },
-  'priya.k':     { pass: 'Kalu@Priya1',   role: 'Sales',       name: 'Priya K.' },
-  'james.t':     { pass: 'Kalu@James1',   role: 'Inventory',   name: 'James T.' }
+  'sarah.a':     { pass: 'Kalu@Sarah1',  role: 'Admin',       name: 'Sarah A.' },
+  'mike.r':      { pass: 'Kalu@Mike01',  role: 'Sales',       name: 'Mike R.' },
+  'priya.k':     { pass: 'Kalu@Priya1',  role: 'Sales',       name: 'Priya K.' },
+  'james.t':     { pass: 'Kalu@James1',  role: 'Inventory',   name: 'James T.' },
+  'test':        { pass: 'Test@Kalu1',   role: 'Admin',       name: 'Test User', sandbox: true }
 };
 let currentUser = null;
 
 function doLogin() {
-  const u = (document.getElementById('loginUser').value || '').toLowerCase().trim();
-  const p = document.getElementById('loginPass').value;
+  const u   = (document.getElementById('loginUser').value || '').toLowerCase().trim();
+  const p   = document.getElementById('loginPass').value;
   const err = document.getElementById('loginErr');
   if (USERS_DB[u] && USERS_DB[u].pass === p) {
     currentUser = { username: u, ...USERS_DB[u] };
+    window._sandboxMode = !!currentUser.sandbox;
     document.getElementById('loginScreen').style.display = 'none';
-    // Update topbar avatar
+    // Show sandbox banner
+    if (window._sandboxMode) {
+      document.getElementById('sandboxBanner').style.display = 'block';
+      document.querySelector('.topbar').style.marginTop = '36px';
+      document.querySelector('.nav-tabs').style.top = '90px';
+    }
     const initials = currentUser.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    document.querySelector('.topbar div:last-child div:last-child').textContent = initials;
+    const avatarEl = document.querySelector('.topbar div:last-child div:last-child');
+    if (avatarEl) avatarEl.textContent = initials;
     err.style.display = 'none';
-    showToast('Welcome, ' + currentUser.name + ' (' + currentUser.role + ')');
+    showToast('Welcome, ' + currentUser.name + (window._sandboxMode ? ' — SANDBOX MODE' : ''));
+    loadAllData();
   } else {
     err.style.display = 'block';
     document.getElementById('loginPass').value = '';
@@ -2582,7 +2960,457 @@ function doLogin() {
   }
 }
 
-// ===== USER MANAGEMENT =====
+function exitSandbox() {
+  window._sandboxMode = false;
+  currentUser = null;
+  document.getElementById('sandboxBanner').style.display = 'none';
+  document.querySelector('.topbar').style.marginTop = '';
+  document.querySelector('.nav-tabs').style.top = '54px';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  _inventory = []; _invoices = []; _customers = []; _expenses = []; _settings = {};
+}
+
+async function clearSandboxData() {
+  if (!window._sandboxMode) return;
+  if (!confirm('Clear ALL sandbox test data? This cannot be undone.')) return;
+  showToast('Clearing sandbox...');
+  await window.DB.clearSandbox();
+  showToast('✓ All sandbox data cleared');
+  loadAllData();
+}
+
+// ── Load all data from Firebase ──
+async function loadAllData() {
+  showToast('Loading data...');
+  const dot = document.getElementById('fbStatus');
+  if (dot) dot.style.background = '#f5a623';
+  try {
+    await Promise.all([loadCustomers(), loadInventory(), loadInvoices(), loadExpenses(), loadSettings()]);
+    refreshDashboard();
+    if (dot) dot.style.background = '#4CAF50';
+    showToast('✓ Ready');
+  } catch(e) {
+    if (dot) dot.style.background = '#e53935';
+    showToast('⚠ Firebase error — check connection');
+    console.error('loadAllData:', e);
+  }
+}
+
+async function loadCustomers() {
+  _customers = await window.DB.getCustomers();
+  renderCustomerTable(_customers);
+}
+
+async function loadInventory() {
+  _inventory = await window.DB.getInventory();
+  renderInventoryTable(_inventory);
+}
+
+async function loadInvoices() {
+  _invoices = await window.DB.getInvoices();
+  renderInvoiceHistory(_invoices);
+}
+
+async function loadExpenses() {
+  _expenses = await window.DB.getExpenses();
+  updateExpenseMetrics();
+}
+
+async function loadSettings() {
+  _settings = await window.DB.getSettings();
+  if (_settings.karatRates) {
+    const r = _settings.karatRates;
+    ['10K','14K','18K','22K','925'].forEach(k => {
+      const el = document.getElementById('adminRate' + k);
+      if (el && r[k]) el.value = r[k];
+    });
+    syncInwardRatesFromAdmin();
+  }
+  if (_settings.company) {
+    const co = _settings.company;
+    if (document.getElementById('companyName')) document.getElementById('companyName').value = co.name || '';
+    updateCompanyPreview();
+  }
+}
+
+// ── Render functions ──
+function renderCustomerTable(list) {
+  const tbody = document.getElementById('clientTableBody') || document.getElementById('clientsTableBody');
+  if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:28px;">No customers yet — add your first client above.</td></tr>'; return; }
+  tbody.innerHTML = list.map(c => {
+    const tier = c.tier || 'Silver';
+    const tc = tier==='Platinum'?'badge-blue':tier==='Gold'?'badge-gold':'badge-gray';
+    return `<tr>
+      <td><code style="font-size:11px;background:var(--beige2);padding:2px 6px;border-radius:3px;">${c.id.slice(-8).toUpperCase()}</code></td>
+      <td style="font-weight:500;">${c.first||''} ${c.last||''}</td>
+      <td>${c.phone||'—'}</td>
+      <td style="font-size:12px;">${c.email||'—'}</td>
+      <td><span class="badge ${tc}">${tier}</span></td>
+      <td>${c.source||'—'}</td>
+      <td>${c.invoiceCount||0}</td>
+      <td style="font-weight:500;color:var(--gold-dark);">$${(c.totalSpend||0).toLocaleString()}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="viewClient('${c.id}')">View</button></td>
+    </tr>`;
+  }).join('');
+  const meta = document.querySelector('#hdr-clientsearch .collapse-header-meta');
+  if (meta) meta.textContent = list.length + ' clients total';
+}
+
+function renderInventoryTable(list) {
+  const tbody = document.getElementById('inventoryTableBody');
+  if (!tbody) return;
+  const statsEl = document.getElementById('inventoryStats');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--text3);padding:28px;">No inventory yet — add items via Stock Inward.</td></tr>';
+    if (statsEl) statsEl.textContent = 'No items';
+    ['invValSKUs','invValCost','invValList','invValDays'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='0'; });
+    return;
+  }
+  const now = Date.now();
+  tbody.innerHTML = list.map(item => {
+    const created = item.createdAt?.seconds ? item.createdAt.seconds * 1000 : now;
+    const days = Math.floor((now - created) / 86400000);
+    const dc = days > 90 ? 'var(--danger)' : days > 60 ? 'var(--warning)' : 'var(--success)';
+    const sb = item.status==='Sold'?'badge-red':item.status==='Reserved'?'badge-blue':'badge-green';
+    return `<tr>
+      <td><code style="font-size:11px;background:var(--beige2);padding:2px 5px;border-radius:3px;">${item.sku||'—'}</code></td>
+      <td style="font-size:12px;color:var(--text2);">${item.vendorInv||'—'}</td>
+      <td><div style="font-weight:500;">${item.itemName||'—'}</div><div style="font-size:10px;color:var(--text3);">${item.weight||''}g · ${item.size||''}</div></td>
+      <td><span class="badge badge-gold">${item.category||'—'}</span></td>
+      <td><span class="badge badge-blue">${item.karat||'—'}</span></td>
+      <td>${item.weight||'—'}g</td>
+      <td>${item.size||'—'}</td>
+      <td>$${(item.cost||0).toLocaleString()}</td>
+      <td>$${(item.listPrice||0).toLocaleString()}</td>
+      <td><span style="color:${dc};font-weight:500;">${days}</span></td>
+      <td><span class="badge ${sb}">${item.status||'In Stock'}</span></td>
+      <td><div style="display:flex;gap:4px;">
+        <button class="btn btn-outline btn-sm" onclick="viewItemHistory('${item.id}')">History</button>
+        <button class="btn btn-outline btn-sm" onclick="openEditInventoryModal('${item.id}')">Edit</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  const inStock = list.filter(i => i.status !== 'Sold');
+  const totalCost = inStock.reduce((s,i) => s+(i.cost||0), 0);
+  const totalList = inStock.reduce((s,i) => s+(i.listPrice||0), 0);
+  const allDays   = inStock.map(i => { const cr = i.createdAt?.seconds ? i.createdAt.seconds*1000 : now; return Math.floor((now-cr)/86400000); });
+  const avgDays   = allDays.length ? Math.round(allDays.reduce((s,d)=>s+d,0)/allDays.length) : 0;
+  const over90    = allDays.filter(d=>d>90).length;
+  if (statsEl) statsEl.textContent = `Showing ${list.length} items · Cost: $${totalCost.toLocaleString()} · List Value: $${totalList.toLocaleString()}`;
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('invValSKUs',  inStock.length);
+  set('invValCost',  '$'+totalCost.toLocaleString());
+  set('invValList',  '$'+totalList.toLocaleString());
+  set('invValDays',  avgDays);
+  set('invValOld',   over90+' items >90 days');
+}
+
+function renderInvoiceHistory(list) {
+  const tbody = document.getElementById('invoiceHistoryBody');
+  if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:28px;">No invoices yet.</td></tr>'; return; }
+  tbody.innerHTML = list.map(inv => {
+    const sb = inv.status==='Paid'?'badge-green':inv.status==='Void'?'badge-red':'badge-gold';
+    const d = inv.date || (inv.createdAt?.seconds ? new Date(inv.createdAt.seconds*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—');
+    const payMode = inv.payments?.length ? inv.payments.map(p=>p.mode).join(', ') : (inv.paymentMode||'—');
+    return `<tr>
+      <td><span class="badge badge-gold">${inv.invoiceNum||inv.id.slice(-8)}</span></td>
+      <td>${d}</td>
+      <td style="font-weight:500;">${inv.customerName||'Walk-in'}</td>
+      <td>${inv.salesPerson||'—'}</td>
+      <td>${(inv.items||[]).length}</td>
+      <td style="font-weight:500;color:var(--gold-dark);">$${(inv.total||0).toLocaleString()}</td>
+      <td>${payMode}</td>
+      <td><span class="badge ${sb}">${inv.status||'Paid'}</span></td>
+      <td><button class="btn btn-outline btn-sm" onclick="viewInvoiceFromHistory('${inv.id}')">View</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateExpenseMetrics() {
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
+  const sum = arr => arr.reduce((s,e) => s+(parseFloat(e.amount)||0), 0);
+  const todayExp  = _expenses.filter(e => e.date === todayStr);
+  const weekExp   = _expenses.filter(e => e.date && new Date(e.date) >= weekStart);
+  const monthExp  = _expenses.filter(e => { const d = e.date ? new Date(e.date) : null; return d && d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear(); });
+  const ytdExp    = _expenses.filter(e => { const d = e.date ? new Date(e.date) : null; return d && d.getFullYear()===now.getFullYear(); });
+  const setCard = (id, val, sub) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const vEl = el.querySelector('.metric-value'); if (vEl) vEl.textContent = '$'+Math.round(val).toLocaleString();
+    const sEl = el.querySelector('.metric-sub');   if (sEl && sub) sEl.textContent = sub;
+  };
+  setCard('expMetricToday',  sum(todayExp),  todayExp.length+' entries');
+  setCard('expMetricWeek',   sum(weekExp),   '');
+  setCard('expMetricMonth',  sum(monthExp),  'Budget: —');
+  setCard('expMetricYTD',    sum(ytdExp),    'Jan–present');
+}
+
+function refreshDashboard() {
+  const paid = _invoices.filter(i => i.status !== 'Void');
+  const revenue = paid.reduce((s,i) => s+(i.total||0), 0);
+  const cogs    = paid.reduce((s,i) => s+(i.items||[]).reduce((x,it) => x+(it.cost||0)*(it.qty||1), 0), 0);
+  const gp      = revenue - cogs;
+  const now     = new Date();
+  const monthExp = _expenses.filter(e => { const d = e.date ? new Date(e.date) : null; return d && d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear(); });
+  const totalExp = monthExp.reduce((s,e) => s+(parseFloat(e.amount)||0), 0);
+  const ebitda   = gp - totalExp;
+  const units    = paid.reduce((s,i) => s+(i.items||[]).reduce((x,it)=>x+(it.qty||1),0), 0);
+  const fmt = v => '$'+Math.round(v).toLocaleString();
+  const set = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('dashRevenue',     fmt(revenue));
+  set('dashGrossProfit', fmt(gp));
+  set('dashExpenses',    fmt(totalExp));
+  set('dashEBITDA',      fmt(ebitda));
+  set('dashInvoices',    paid.length);
+  set('dashUnits',       units);
+  if (document.getElementById('dashMargin') && revenue > 0) document.getElementById('dashMargin').textContent = 'Margin: '+(gp/revenue*100).toFixed(1)+'%';
+}
+
+function openEditInventoryModal(id) {
+  const item = _inventory.find(i => i.id === id);
+  if (!item) return;
+  document.getElementById('editInvId').value = id;
+  document.getElementById('editInvSKU').value = item.sku || '';
+  document.getElementById('editInvName').value = item.itemName || '';
+  document.getElementById('editInvKarat').value = item.karat || '14K';
+  document.getElementById('editInvCategory').value = item.category || 'Ring';
+  document.getElementById('editInvWeight').value = item.weight || '';
+  document.getElementById('editInvSize').value = item.size || '';
+  document.getElementById('editInvCost').value = item.cost || '';
+  document.getElementById('editInvList').value = item.listPrice || '';
+  document.getElementById('editInvStatus').value = item.status || 'In Stock';
+  document.getElementById('editInvVendor').value = item.vendor || '';
+  document.getElementById('editInvDesc').value = item.desc || '';
+  document.getElementById('editInventoryModal').classList.add('open');
+}
+
+// ── Inventory filter ──
+function filterInventory(val) {
+  val = (val||'').toLowerCase();
+  const filtered = val ? _inventory.filter(i =>
+    (i.sku||'').toLowerCase().includes(val) ||
+    (i.itemName||'').toLowerCase().includes(val) ||
+    (i.karat||'').toLowerCase().includes(val) ||
+    (i.category||'').toLowerCase().includes(val)
+  ) : _inventory;
+  renderInventoryTable(filtered);
+}
+
+// ── Item search in billing ──
+function filterBillingItems(val) {
+  val = (val||'').toLowerCase();
+  const tbody = document.getElementById('itemSearchTableBody');
+  if (!tbody) return;
+  const avail = _inventory.filter(i => i.status !== 'Sold' && (!val ||
+    (i.sku||'').toLowerCase().includes(val) ||
+    (i.itemName||'').toLowerCase().includes(val) ||
+    (i.karat||'').toLowerCase().includes(val)
+  ));
+  if (!avail.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:16px;">No matching items in stock</td></tr>'; return; }
+  tbody.innerHTML = avail.map(i => `<tr>
+    <td><code style="font-size:11px;">${i.sku||'—'}</code></td>
+    <td>${i.itemName||'—'}</td>
+    <td><span class="badge badge-blue">${i.karat||'—'}</span></td>
+    <td>${i.weight||'—'}g</td>
+    <td>$${(i.listPrice||0).toLocaleString()}</td>
+    <td><span class="badge badge-green">In Stock</span></td>
+    <td><button class="btn btn-gold btn-sm" onclick="addItemToInvoice('${i.sku}','${(i.itemName||'').replace(/'/g,'&#39;')} ${i.karat}',${i.listPrice||0},${i.cost||0})">Add</button></td>
+  </tr>`).join('');
+}
+
+// ── Export filtered expenses as CSV ──
+function exportFilteredExpenses() {
+  const rows = document.querySelectorAll('#filteredExpenseBody tr');
+  const lines = ['Date,Category,Description,Amount,Member'];
+  rows.forEach(r => {
+    const cells = r.querySelectorAll('td');
+    if (cells.length >= 4) lines.push([cells[0].textContent, cells[1].textContent, cells[2].textContent, cells[3].textContent, cells[4]?.textContent||''].join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'kalu-expenses.csv'; a.click();
+  showToast('✓ CSV downloaded');
+}
+
+// ── Remove expense range from Firebase ──
+async function removeExpenseRange() {
+  const from = document.getElementById('removeFrom').value;
+  const to   = document.getElementById('removeTo').value;
+  if (!from || !to) { showToast('Select both start and end date'); return; }
+  const toDelete = _expenses.filter(e => e.date >= from && e.date <= to);
+  if (!toDelete.length) { showToast('No expenses found in that range'); return; }
+  if (!confirm('Delete '+toDelete.length+' expense entries from '+from+' to '+to+'?')) return;
+  try {
+    showToast('Deleting...');
+    for (const exp of toDelete) await window.DB.deleteExpense(exp.id);
+    showToast('✓ '+toDelete.length+' entries deleted');
+    await loadExpenses(); refreshDashboard();
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+// ===== EDIT INVENTORY ITEM =====
+async function saveEditedInventoryItem() {
+  const id = document.getElementById('editInvId').value;
+  if (!id) return;
+  const updates = {
+    itemName:  document.getElementById('editInvName').value.trim(),
+    category:  document.getElementById('editInvCategory').value,
+    karat:     document.getElementById('editInvKarat').value,
+    weight:    parseFloat(document.getElementById('editInvWeight').value) || 0,
+    size:      document.getElementById('editInvSize').value,
+    cost:      parseFloat(document.getElementById('editInvCost').value) || 0,
+    listPrice: parseFloat(document.getElementById('editInvList').value) || 0,
+    status:    document.getElementById('editInvStatus').value,
+    vendor:    document.getElementById('editInvVendor').value,
+    desc:      document.getElementById('editInvDesc').value,
+  };
+  if (!updates.itemName) { showToast('⚠ Item name is required'); return; }
+  try {
+    showToast('Saving...');
+    await window.DB.updateInventoryItem(id, updates);
+    const idx = _inventory.findIndex(i => i.id === id);
+    if (idx > -1) _inventory[idx] = { ..._inventory[idx], ...updates };
+    renderInventoryTable(_inventory);
+    closeModal('editInventoryModal');
+    showToast('✓ Item updated');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+async function deleteInventoryItem() {
+  const id = document.getElementById('editInvId').value;
+  const name = document.getElementById('editInvName').value;
+  if (!confirm('Delete "' + name + '" from inventory? This cannot be undone.')) return;
+  try {
+    await window.DB.deleteInventoryItem(id);
+    _inventory = _inventory.filter(i => i.id !== id);
+    renderInventoryTable(_inventory);
+    closeModal('editInventoryModal');
+    showToast('✓ Item deleted');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+// ===== VIEW INVOICE FROM HISTORY =====
+function viewInvoiceFromHistory(id) {
+  const inv = _invoices.find(i => i.id === id);
+  if (!inv) { showToast('Invoice not found'); return; }
+  document.getElementById('viewInvTitle').textContent = inv.invoiceNum || ('INV-' + id.slice(-8).toUpperCase());
+  const items = (inv.items || []).map(it => `
+    <tr style="border-bottom:1px solid #E2D9C5;">
+      <td style="padding:7px 8px;">${it.name || '—'}<br><span style="font-size:10px;color:#9C8A6E;">${it.sku||''}</span></td>
+      <td style="padding:7px 8px;text-align:center;">${it.qty||1}</td>
+      <td style="padding:7px 8px;text-align:right;">$${(it.listPrice||0).toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:center;">${it.discount||0}%</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;">$${(it.sellPrice||0).toLocaleString()}</td>
+    </tr>`).join('');
+  const payments = (inv.payments||[]).map(p => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;"><span>${p.mode}</span><span>$${(p.amount||0).toLocaleString()}</span></div>`).join('');
+  const dateFormatted = inv.date ? new Date(inv.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+  document.getElementById('viewInvoiceContent').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+      <div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;color:#7A5900;">${companyData.name}</div>
+        <div style="font-size:11px;color:#6B5B3E;line-height:1.8;">${companyData.addr1}<br>${companyData.addr2}<br>Tel: ${companyData.phone}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:20px;font-weight:700;color:#2C2416;">INVOICE</div>
+        <div style="color:#7A5900;font-weight:600;">${inv.invoiceNum||id.slice(-8)}</div>
+        <div style="font-size:12px;color:#6B5B3E;">Date: ${dateFormatted}</div>
+        <div style="font-size:12px;color:#6B5B3E;">Sales: ${inv.salesPerson||'—'}</div>
+        <div style="font-size:12px;margin-top:4px;"><span class="badge ${inv.status==='Void'?'badge-red':inv.status==='Pending'?'badge-blue':'badge-green'}">${inv.status||'Paid'}</span></div>
+      </div>
+    </div>
+    <div style="background:#F5EDD4;padding:10px 14px;border-radius:6px;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9C8A6E;margin-bottom:3px;">Bill To</div>
+      <div style="font-weight:600;">${inv.customerName||'Walk-in'}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px;">
+      <thead><tr style="border-bottom:2px solid #D4C9AE;">
+        <th style="padding:6px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:#9C8A6E;">Item</th>
+        <th style="padding:6px 8px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;color:#9C8A6E;">Qty</th>
+        <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#9C8A6E;">Price</th>
+        <th style="padding:6px 8px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;color:#9C8A6E;">Disc</th>
+        <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#9C8A6E;">Amount</th>
+      </tr></thead>
+      <tbody>${items || '<tr><td colspan="5" style="padding:12px;text-align:center;color:#9C8A6E;">No items recorded</td></tr>'}</tbody>
+    </table>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <div style="width:200px;">
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;border-bottom:1px solid #E2D9C5;"><span style="color:#6B5B3E;">Subtotal</span><span>$${(inv.subtotal||0).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:14px;font-weight:700;color:#7A5900;border-top:2px solid #B8860B;margin-top:3px;"><span>TOTAL</span><span>$${(inv.total||0).toLocaleString()}</span></div>
+      </div>
+    </div>
+    ${payments ? `<div style="background:#F5EDD4;padding:10px 14px;border-radius:6px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9C8A6E;margin-bottom:6px;">Payment</div>${payments}</div>` : ''}
+    <div style="margin-top:14px;padding-top:10px;border-top:1px solid #D4C9AE;font-size:10px;color:#9C8A6E;text-align:center;">Created by: ${inv.createdBy||'—'} · ID: ${id}</div>`;
+  document.getElementById('viewInvoiceModal').classList.add('open');
+}
+
+function printViewedInvoice() {
+  const content = document.getElementById('viewInvoiceContent').innerHTML;
+  const w = window.open('','_blank','width=700,height=900');
+  w.document.write(`<html><head><title>Invoice</title><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"><style>body{font-family:'Jost',sans-serif;padding:32px;color:#2C2416;}</style></head><body>${content}<script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
+  w.document.close();
+}
+
+// ===== CSV EXPORTS =====
+function exportCSV(filename, headers, rows) {
+  const lines = [headers.join(','), ...rows];
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  showToast('✓ ' + filename + ' downloaded');
+}
+
+function exportClients() {
+  if (!_customers.length) { showToast('No clients to export'); return; }
+  exportCSV('kalu-clients.csv',
+    ['ID','First','Last','Phone','Email','Tier','Source','Sales Person','Total Spend','Invoice Count','Notes'],
+    _customers.map(c => [c.id,c.first||'',c.last||'',c.phone||'',c.email||'',c.tier||'Silver',c.source||'',c.sales||'',c.totalSpend||0,c.invoiceCount||0,(c.notes||'').replace(/,/g,' ')].join(','))
+  );
+}
+
+function exportInvoices() {
+  if (!_invoices.length) { showToast('No invoices to export'); return; }
+  exportCSV('kalu-invoices.csv',
+    ['Invoice #','Date','Customer','Sales Person','Items','Subtotal','Total','Status','Payment Modes','Created By'],
+    _invoices.map(inv => [
+      inv.invoiceNum||inv.id.slice(-8),
+      inv.date||'',
+      (inv.customerName||'').replace(/,/g,' '),
+      inv.salesPerson||'',
+      (inv.items||[]).length,
+      inv.subtotal||0,
+      inv.total||0,
+      inv.status||'Paid',
+      (inv.payments||[]).map(p=>p.mode).join(' + '),
+      inv.createdBy||''
+    ].join(','))
+  );
+}
+
+function exportInventory() {
+  if (!_inventory.length) { showToast('No inventory to export'); return; }
+  exportCSV('kalu-inventory.csv',
+    ['SKU','Item Name','Category','Karat','Weight(g)','Size','Cost($)','List Price($)','Status','Vendor','Inward Date','Created By'],
+    _inventory.map(i => [i.sku||'',( i.itemName||'').replace(/,/g,' '),i.category||'',i.karat||'',i.weight||'',i.size||'',i.cost||0,i.listPrice||0,i.status||'In Stock',(i.vendor||'').replace(/,/g,' '),i.inwardDate||'',i.createdBy||''].join(','))
+  );
+}
+
+function exportExpensesCSV() {
+  if (!_expenses.length) { showToast('No expenses to export'); return; }
+  exportCSV('kalu-expenses.csv',
+    ['Date','Category','Description','Amount($)','Member','Created By'],
+    _expenses.map(e => [e.date||'',e.category||'',(e.description||'').replace(/,/g,' '),e.amount||0,e.member||'',e.createdBy||''].join(','))
+  );
+}
+
+
 function togglePwdVis(id, eyeEl) {
   const inp = document.getElementById(id);
   if (!inp) return;
