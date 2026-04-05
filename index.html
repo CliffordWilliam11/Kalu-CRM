@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kalü Jewelry — Management System v12</title>
+<title>Kalü Jewelry — Management System v13</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -39,7 +39,7 @@
 body { font-family: 'Jost', sans-serif; background: var(--beige); color: var(--text); min-height: 100vh; font-size: 14px; }
 
 /* TOPBAR */
-.topbar { background: var(--gold-dark); color: var(--gold-pale); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 54px; position: sticky; top: 0; z-index: 100; }
+.topbar { background: #7A5900; color: var(--gold-pale); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 54px; position: sticky; top: 0; z-index: 100; opacity: 1 !important; }
 .topbar-brand { display: flex; align-items: center; gap: 10px; }
 .topbar-logo { width: 34px; height: 34px; background: var(--gold-mid); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: var(--gold-dark); }
 .topbar-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; letter-spacing: 1px; color: var(--gold-light); }
@@ -51,7 +51,7 @@ body { font-family: 'Jost', sans-serif; background: var(--beige); color: var(--t
 .sep { width: 1px; height: 26px; background: rgba(255,255,255,0.15); }
 
 /* NAV */
-.nav-tabs { background: var(--beige2); display: flex; padding: 0 12px; gap: 4px; border-bottom: 2px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch; position: sticky; top: 54px; z-index: 99; align-items: center; }
+.nav-tabs { background: #EDE6D6; display: flex; padding: 0 12px; gap: 4px; border-bottom: 2px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch; position: sticky; top: 54px; z-index: 99; align-items: center; opacity: 1 !important; }
 .nav-tab { padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; border: 2px solid transparent; border-radius: 7px; margin: 5px 2px; white-space: nowrap; transition: all 0.18s; line-height: 1.3; }
 .nav-tab:hover { color: var(--gold-dark); border-color: var(--gold-light); background: var(--gold-pale); }
 .nav-tab.active { color: var(--gold-dark); border: 2px solid var(--gold-dark); background: var(--gold-pale); font-weight: 600; }
@@ -616,7 +616,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="collapse-header" id="hdr-clientsearch" onclick="toggleCollapse('clientsearch')">
       <div class="collapse-header-title">🔍 Search Clients</div>
       <div style="display:flex;align-items:center;gap:12px;">
-        <span class="collapse-header-meta">48 clients total</span>
+        <span class="collapse-header-meta" id="clientCountMeta">0 clients</span>
         <span class="collapse-chevron">▾</span>
       </div>
     </div>
@@ -666,7 +666,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="collapse-header active" id="hdr-newinvoice" onclick="toggleCollapse('newinvoice')">
       <div class="collapse-header-title">
         ⬡ New Invoice
-        <span class="badge badge-gold" style="font-size:12px;padding:3px 10px;" id="invoiceNumBadge">INV-2025-0047</span>
+        <span class="badge badge-gold" style="font-size:12px;padding:3px 10px;" id="invoiceNumBadge">Draft</span>
       </div>
       <div style="display:flex;align-items:center;gap:12px;">
         <span class="collapse-header-meta">Draft</span>
@@ -692,8 +692,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
           </div>
           <div class="grid-3">
             <div class="form-group" style="margin-bottom:0;"><label>Address</label><input type="text" class="form-control" id="custAddr" placeholder="Street, City, State, ZIP"></div>
-            <div class="form-group" style="margin-bottom:0;"><label>Lead Source</label>
-              <select class="form-control" id="custSource">
+            <div class="form-group" style="margin-bottom:0;"><label>Lead Source *</label>
+              <select class="form-control" id="custSource" required>
+                <option value="">-- Select --</option>
                 <option>Walk-in</option><option>Instagram</option><option>Facebook</option><option>Google</option><option>Events</option><option>Referral</option>
               </select>
             </div>
@@ -711,34 +712,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text3);">🔍</span>
           </div>
           <div id="clientSearchResults" style="display:none;border:1px solid var(--border);border-radius:var(--radius);background:var(--cream);max-height:220px;overflow-y:auto;">
-            <div onclick="selectClient('KLU-0001','Clifford B.','+1 (212) 555-0198','clifford@email.com')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--beige)'" onmouseout="this.style.background=''">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div><strong>Clifford B.</strong> <span style="font-size:12px;color:var(--text3);">KLU-0001</span></div>
-                <span class="badge" style="background:#E8E0F0;color:#5A3E8A;">Platinum</span>
-              </div>
-              <div style="font-size:12px;color:var(--text2);">+1 (212) 555-0198 · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3457585d52525b4650745159555d581a575b59">[email&#160;protected]</a> · 8 invoices · $24,800</div>
-            </div>
-            <div onclick="selectClient('KLU-0002','Anjali S.','+1 (310) 555-0241','anjali@email.com')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--beige)'" onmouseout="this.style.background=''">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div><strong>Anjali S.</strong> <span style="font-size:12px;color:var(--text3);">KLU-0002</span></div>
-                <span class="badge badge-gold">Gold</span>
-              </div>
-              <div style="font-size:12px;color:var(--text2);">+1 (310) 555-0241 · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="15747b7f74797c557078747c793b767a78">[email&#160;protected]</a> · 4 invoices · $9,400</div>
-            </div>
-            <div onclick="selectClient('KLU-0003','Robert M.','+1 (415) 555-0089','robert@email.com')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--beige)'" onmouseout="this.style.background=''">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div><strong>Robert M.</strong> <span style="font-size:12px;color:var(--text3);">KLU-0003</span></div>
-                <span class="badge badge-gold">Gold</span>
-              </div>
-              <div style="font-size:12px;color:var(--text2);">+1 (415) 555-0089 · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a8dac7cacddadce8cdc5c9c1c486cbc7c5">[email&#160;protected]</a> · 3 invoices · $6,200</div>
-            </div>
-            <div onclick="selectClient('KLU-0004','Sunita P.','+1 (213) 555-0312','sunita@email.com')" style="padding:10px 14px;cursor:pointer;" onmouseover="this.style.background='var(--beige)'" onmouseout="this.style.background=''">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div><strong>Sunita P.</strong> <span style="font-size:12px;color:var(--text3);">KLU-0004</span></div>
-                <span class="badge badge-gray">Silver</span>
-              </div>
-              <div style="font-size:12px;color:var(--text2);">+1 (213) 555-0312 · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="fb888e95928f9abb9e969a9297d5989496">[email&#160;protected]</a> · 2 invoices · $2,800</div>
-            </div>
+            <div style="padding:10px 14px;font-size:12px;color:var(--text3);">Type to search clients...</div>
           </div>
           <div id="selectedClientCard" style="display:none;margin-top:10px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;">
@@ -783,22 +757,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <span></span>
       </div>
       <div id="lineItemsContainer">
-        <div class="li-row" id="li-1">
-          <div><div style="font-size:13px;font-weight:500;">Diamond Solitaire Ring 14K</div><div style="font-size:10px;color:var(--text3);">R-14K-001 · 3.2g · Size 7</div></div>
-          <input type="number" value="1" min="1" class="form-control li-qty" style="padding:5px 7px;font-size:12px;" onchange="calcTotal()">
-          <div style="font-size:13px;color:var(--text2);" class="li-list">$1,850.00</div>
-          <input type="number" value="0" min="0" max="100" class="form-control disc-input" style="padding:5px 7px;font-size:12px;" onchange="calcTotal()">
-          <div class="line-sell" style="font-size:13px;font-weight:600;color:var(--gold-dark);">$1,850.00</div>
-          <button class="btn btn-danger btn-icon" onclick="removeLineItem('li-1')">✕</button>
-        </div>
-        <div class="li-row" id="li-2">
-          <div><div style="font-size:13px;font-weight:500;">Tennis Bracelet 925</div><div style="font-size:10px;color:var(--text3);">B-925-002 · 8.1g · 7.5"</div></div>
-          <input type="number" value="1" min="1" class="form-control li-qty" style="padding:5px 7px;font-size:12px;" onchange="calcTotal()">
-          <div style="font-size:13px;color:var(--text2);" class="li-list">$320.00</div>
-          <input type="number" value="10" min="0" max="100" class="form-control disc-input" style="padding:5px 7px;font-size:12px;" onchange="calcTotal()">
-          <div class="line-sell" style="font-size:13px;font-weight:600;color:var(--gold-dark);">$288.00</div>
-          <button class="btn btn-danger btn-icon" onclick="removeLineItem('li-2')">✕</button>
-        </div>
       </div>
 
       <hr>
@@ -883,7 +841,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         ◷ Invoice History
       </div>
       <div style="display:flex;align-items:center;gap:12px;">
-        <span class="collapse-header-meta">46 invoices this month</span>
+        <span class="collapse-header-meta" id="invoiceCountMeta">0 invoices</span>
         <span class="collapse-chevron">▾</span>
       </div>
     </div>
@@ -1116,24 +1074,16 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div class="card-title" style="margin-bottom:0;">Vendors</div>
         <button class="btn btn-outline btn-sm" onclick="openVendorModal()">+ New Vendor</button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:9px;">
-        <div style="padding:12px;background:var(--beige);border-radius:8px;border-left:3px solid var(--gold-mid);border:1px solid var(--border);border-left-width:3px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><div style="font-weight:600;font-size:14px;">Raj Gems Co.</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Raj Patel · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e99b8883a99b88838e8c849ac78a8684">[email&#160;protected]</a> · +1 (213) 555-0142</div><div style="font-size:12px;color:var(--text2);">14K, 18K Gold · 47 items</div></div><span class="badge badge-green">Active</span></div></div>
-        <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><div style="font-weight:600;font-size:14px;">Silver Star LLC</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Maria S. · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a8c5c9dac1c9e8dbc1c4decddadbdcc9da86cbc7c5">[email&#160;protected]</a> · +1 (310) 555-0280</div><div style="font-size:12px;color:var(--text2);">925 Silver · 82 items</div></div><span class="badge badge-green">Active</span></div></div>
-        <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><div style="font-weight:600;font-size:14px;">Gold Exports Ltd</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Arjun M. · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="81e0f3ebf4efc1e6eeede5e4f9f1eef3f5f2afe2eeec">[email&#160;protected]</a></div><div style="font-size:12px;color:var(--text2);">10K, 14K · 63 items</div></div><span class="badge badge-green">Active</span></div></div>
-        <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><div style="font-weight:600;font-size:14px;">Mumbai Jewels Inc.</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Priya V. · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="cdbdbfa4b4ac8da0b8a0afaca4a7a8baa8a1bee3aea2a0">[email&#160;protected]</a></div><div style="font-size:12px;color:var(--text2);">18K, 22K Antique · 31 items</div></div><span class="badge badge-gray">Inactive</span></div></div>
+      <div id="vendorsList" style="display:flex;flex-direction:column;gap:9px;">
+        <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">No vendors added yet. Click + New Vendor to add one.</div>
       </div>
     </div>
     <div class="card">
       <div class="card-title">Recent Stock Inward</div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Date</th><th>SKU</th><th>Item</th><th>Vendor Inv#</th><th>Qty</th><th>Cost</th><th>Vendor</th></tr></thead>
-          <tbody>
-            <tr><td>Jan 15</td><td><code style="font-size:11px;">R-14K-001</code></td><td>Diamond Ring</td><td>RGC-2025-112</td><td>1</td><td>$820</td><td>Raj Gems</td></tr>
-            <tr><td>Jan 14</td><td><code style="font-size:11px;">E-14K-004</code></td><td>Hoop Earrings</td><td>RGC-2025-098</td><td>2</td><td>$960</td><td>Raj Gems</td></tr>
-            <tr><td>Jan 12</td><td><code style="font-size:11px;">N-10K-003</code></td><td>Gold Chain Necklace</td><td>GEL-2025-088</td><td>3</td><td>$462</td><td>Gold Exports</td></tr>
-            <tr><td>Jan 10</td><td><code style="font-size:11px;">B-925-002</code></td><td>Tennis Bracelet</td><td>SSL-2025-047</td><td>5</td><td>$475</td><td>Silver Star</td></tr>
-          </tbody>
+          <thead><tr><th>Date</th><th>SKU</th><th>Item</th><th>Vendor Inv#</th><th>Cost</th><th>Vendor</th></tr></thead>
+          <tbody id="recentInwardBody"><tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px;">No stock inwarded yet.</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1145,10 +1095,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
   <!-- METRICS — top of page -->
   <div class="grid-4" style="margin-bottom:16px;">
-    <div class="metric-card"><div class="metric-label">Today</div><div class="metric-value">$148</div><div class="metric-sub">3 entries</div></div>
-    <div class="metric-card"><div class="metric-label">This Week</div><div class="metric-value">$724</div><div class="metric-sub">↑ $192 vs last</div></div>
-    <div class="metric-card"><div class="metric-label">This Month</div><div class="metric-value">$2,840</div><div class="metric-sub">Budget: $3,500</div></div>
-    <div class="metric-card"><div class="metric-label">YTD</div><div class="metric-value">$8,420</div><div class="metric-sub">Jan–present</div></div>
+    <div class="metric-card" id="expMetricToday"><div class="metric-label">Today</div><div class="metric-value">$0</div><div class="metric-sub">0 entries</div></div>
+    <div class="metric-card" id="expMetricWeek"><div class="metric-label">This Week</div><div class="metric-value">$0</div><div class="metric-sub"></div></div>
+    <div class="metric-card" id="expMetricMonth"><div class="metric-label">This Month</div><div class="metric-value">$0</div><div class="metric-sub">Budget: —</div></div>
+    <div class="metric-card" id="expMetricYTD"><div class="metric-label">YTD</div><div class="metric-value">$0</div><div class="metric-sub">Jan–present</div></div>
   </div>
 
   <!-- ADD EXPENSES -->
@@ -1220,13 +1170,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Member</th><th>Receipt</th><th>Action</th></tr></thead>
+          <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Member</th><th>Receipt</th><th id="expActionHeader" style="display:none;">Action</th></tr></thead>
           <tbody id="filteredExpenseBody">
-            <tr><td>Jan 15</td><td><span class="badge badge-gray">Packaging</span></td><td>Gift boxes &amp; tissue</td><td style="font-weight:500;">$85.00</td><td>Sarah A.</td><td><span style="color:var(--success);">&#10003;</span></td><td><button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('tr').remove();updateFilterTotal()">&#x2715;</button></td></tr>
-            <tr><td>Jan 15</td><td><span class="badge badge-gray">Office</span></td><td>Printer ink</td><td style="font-weight:500;">$42.00</td><td>Mike R.</td><td>&#8212;</td><td><button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('tr').remove();updateFilterTotal()">&#x2715;</button></td></tr>
-            <tr><td>Jan 15</td><td><span class="badge badge-gray">Misc</span></td><td>Team lunch</td><td style="font-weight:500;">$21.00</td><td>James T.</td><td><span style="color:var(--success);">&#10003;</span></td><td><button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('tr').remove();updateFilterTotal()">&#x2715;</button></td></tr>
-            <tr><td>Jan 14</td><td><span class="badge badge-gray">Marketing</span></td><td>Instagram ad boost</td><td style="font-weight:500;">$150.00</td><td>Owner</td><td><span style="color:var(--success);">&#10003;</span></td><td><button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('tr').remove();updateFilterTotal()">&#x2715;</button></td></tr>
-            <tr><td>Jan 13</td><td><span class="badge badge-gray">Travel</span></td><td>Vendor visit parking</td><td style="font-weight:500;">$28.00</td><td>Priya K.</td><td>&#8212;</td><td><button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('tr').remove();updateFilterTotal()">&#x2715;</button></td></tr>
           </tbody>
         </table>
       </div>
@@ -1236,12 +1181,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <!-- Bar chart -->
   <div class="card">
     <div class="card-title">Monthly Breakdown by Category</div>
-    <div class="chart-bar-wrap">
-      <div class="chart-bar-row"><div class="chart-bar-label">Marketing</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:68%;"></div></div><div class="chart-bar-val">$950</div></div>
-      <div class="chart-bar-row"><div class="chart-bar-label">Packaging</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:45%;background:var(--beige4);"></div></div><div class="chart-bar-val">$620</div></div>
-      <div class="chart-bar-row"><div class="chart-bar-label">Travel</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:30%;background:var(--beige4);"></div></div><div class="chart-bar-val">$420</div></div>
-      <div class="chart-bar-row"><div class="chart-bar-label">Office</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:22%;background:var(--beige4);"></div></div><div class="chart-bar-val">$310</div></div>
-      <div class="chart-bar-row"><div class="chart-bar-label">Misc</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:18%;background:var(--beige4);"></div></div><div class="chart-bar-val">$248</div></div>
+    <div id="expenseChartWrap" class="chart-bar-wrap">
+      <div style="text-align:center;color:var(--text3);font-size:13px;padding:20px;">No expenses this month yet.</div>
     </div>
   </div>
 </div>
@@ -1264,32 +1205,32 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="dash-metric" style="border-top:3px solid var(--gold-mid);">
       <div class="dash-metric-label">Revenue</div>
       <div class="dash-metric-value" style="color:var(--success);" id="dashRevenue">$0</div>
-      <div class="dash-metric-sub">↑ 14% vs last month</div>
+      <div class="dash-metric-sub" id="dashMargin">Margin: —</div>
     </div>
     <div class="dash-metric" style="border-top:3px solid var(--gold-mid);">
       <div class="dash-metric-label">Gross Profit</div>
-      <div class="dash-metric-value">$22,180</div>
-      <div class="dash-metric-sub">Margin: 45.9%</div>
+      <div class="dash-metric-value" id="dashGrossProfit">$0</div>
+      <div class="dash-metric-sub">After cost of goods</div>
     </div>
     <div class="dash-metric" style="border-top:3px solid var(--border2);">
       <div class="dash-metric-label">Expenses</div>
-      <div class="dash-metric-value" style="color:var(--danger);">$2,840</div>
-      <div class="dash-metric-sub">Budget: $3,500</div>
+      <div class="dash-metric-value" style="color:var(--danger);" id="dashExpenses">$0</div>
+      <div class="dash-metric-sub">This month</div>
     </div>
     <div class="dash-metric" style="border-top:3px solid var(--gold-mid);">
       <div class="dash-metric-label">EBITDA</div>
-      <div class="dash-metric-value" style="color:var(--success);">$19,340</div>
-      <div class="dash-metric-sub">Margin: 40.0%</div>
+      <div class="dash-metric-value" style="color:var(--success);" id="dashEBITDA">$0</div>
+      <div class="dash-metric-sub">Gross profit − expenses</div>
     </div>
     <div class="dash-metric" style="border-top:3px solid var(--gold-mid);">
       <div class="dash-metric-label">Invoices</div>
-      <div class="dash-metric-value">46</div>
-      <div class="dash-metric-sub">Avg $1,050 / invoice</div>
+      <div class="dash-metric-value" id="dashInvoices">0</div>
+      <div class="dash-metric-sub">Total saved</div>
     </div>
     <div class="dash-metric" style="border-top:3px solid var(--gold-mid);">
       <div class="dash-metric-label">Units Sold</div>
-      <div class="dash-metric-value">84</div>
-      <div class="dash-metric-sub">of 247 in stock</div>
+      <div class="dash-metric-value" id="dashUnits">0</div>
+      <div class="dash-metric-sub" id="dashStock">In stock: 0</div>
     </div>
   </div>
 
@@ -1297,22 +1238,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <div class="grid-2" style="margin-bottom:16px;">
     <div class="card">
       <div class="card-title">Sales by Category</div>
-      <div class="chart-bar-wrap">
-        <div class="chart-bar-row"><div class="chart-bar-label">Rings</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:75%;"></div></div><div class="chart-bar-val">$18,240</div></div>
-        <div class="chart-bar-row"><div class="chart-bar-label">Necklaces</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:58%;background:var(--beige4);"></div></div><div class="chart-bar-val">$14,080</div></div>
-        <div class="chart-bar-row"><div class="chart-bar-label">Bracelets</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:40%;background:var(--beige4);"></div></div><div class="chart-bar-val">$9,600</div></div>
-        <div class="chart-bar-row"><div class="chart-bar-label">Earrings</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:25%;background:var(--beige4);"></div></div><div class="chart-bar-val">$5,900</div></div>
-        <div class="chart-bar-row"><div class="chart-bar-label">Pendants</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:10%;background:var(--beige4);"></div></div><div class="chart-bar-val">$2,400</div></div>
+      <div id="dashCatChart" class="chart-bar-wrap">
+        <div style="text-align:center;color:var(--text3);font-size:13px;padding:20px;">No sales data yet.</div>
       </div>
     </div>
     <div class="card">
       <div class="card-title">Sales by Karat</div>
-      <div class="chart-bar-wrap">
-        <div class="chart-bar-row"><div class="chart-bar-label">14K</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:70%;"></div></div><div class="chart-bar-val">$24,800</div></div>
-        <div class="chart-bar-row"><div class="chart-bar-label">925</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:45%;background:var(--beige4);"></div></div><div class="chart-bar-val">$10,420</div></div>
-        <div class="chart-bar-row"><div class="chart-bar-label">10K</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:30%;background:var(--beige4);"></div></div><div class="chart-bar-val">$7,200</div></div>
-        <div class="chart-bar-row"><div class="chart-bar-label">18K</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:18%;background:var(--beige4);"></div></div><div class="chart-bar-val">$4,900</div></div>
-        <div class="chart-bar-row"><div class="chart-bar-label">22K+</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:5%;background:var(--beige4);"></div></div><div class="chart-bar-val">$1,000</div></div>
+      <div id="dashKaratChart" class="chart-bar-wrap">
+        <div style="text-align:center;color:var(--text3);font-size:13px;padding:20px;">No sales data yet.</div>
       </div>
     </div>
   </div>
@@ -1320,21 +1253,21 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <div class="grid-2" style="margin-bottom:16px;">
     <div class="card">
       <div class="card-title">Sales by Team Member</div>
-      <div class="table-wrap"><table><thead><tr><th>Member</th><th>Invoices</th><th>Revenue</th><th>Avg Sale</th></tr></thead><tbody>
-        <tr><td>Sarah A.</td><td>18</td><td>$21,440</td><td>$1,191</td></tr>
-        <tr><td>Mike R.</td><td>14</td><td>$14,280</td><td>$1,020</td></tr>
-        <tr><td>Priya K.</td><td>8</td><td>$7,920</td><td>$990</td></tr>
-        <tr><td>James T.</td><td>6</td><td>$4,680</td><td>$780</td></tr>
-      </tbody></table></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Member</th><th>Invoices</th><th>Revenue</th><th>Avg Sale</th></tr></thead>
+          <tbody id="dashTeamBody"><tr><td colspan="4" style="text-align:center;color:var(--text3);padding:16px;">No data yet.</td></tr></tbody>
+        </table>
+      </div>
     </div>
     <div class="card">
       <div class="card-title">Payment Mode Breakdown</div>
-      <div class="table-wrap"><table><thead><tr><th>Mode</th><th>Count</th><th>Amount</th><th>Fee Collected</th></tr></thead><tbody>
-        <tr><td>Cash</td><td>22</td><td>$24,100</td><td>—</td></tr>
-        <tr><td>Credit Card</td><td>16</td><td>$15,200</td><td>$608</td></tr>
-        <tr><td>Financing</td><td>5</td><td>$6,800</td><td>$272</td></tr>
-        <tr><td>Zelle/Venmo</td><td>3</td><td>$2,220</td><td>$89</td></tr>
-      </tbody></table></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mode</th><th>Count</th><th>Amount</th></tr></thead>
+          <tbody id="dashPaymentBody"><tr><td colspan="3" style="text-align:center;color:var(--text3);padding:16px;">No data yet.</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -1342,10 +1275,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <div class="card">
     <div class="card-title">Aged Inventory</div>
     <div class="dash-grid-4">
-      <div class="dash-metric"><div class="dash-metric-label">0–30 days</div><div class="dash-metric-value" style="color:var(--success);">142</div><div class="dash-metric-sub" style="color:var(--success);">Fresh stock</div></div>
-      <div class="dash-metric"><div class="dash-metric-label">31–60 days</div><div class="dash-metric-value">62</div><div class="dash-metric-sub">Moving normally</div></div>
-      <div class="dash-metric"><div class="dash-metric-label">61–90 days</div><div class="dash-metric-value" style="color:var(--warning);">20</div><div class="dash-metric-sub" style="color:var(--warning);">Review pricing</div></div>
-      <div class="dash-metric"><div class="dash-metric-label">90+ days</div><div class="dash-metric-value" style="color:var(--danger);">23</div><div class="dash-metric-sub" style="color:var(--danger);">Discount / liquidate</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">0–30 days</div><div class="dash-metric-value" style="color:var(--success);" id="dashAge0">0</div><div class="dash-metric-sub" style="color:var(--success);">Fresh stock</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">31–60 days</div><div class="dash-metric-value" id="dashAge31">0</div><div class="dash-metric-sub">Moving normally</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">61–90 days</div><div class="dash-metric-value" style="color:var(--warning);" id="dashAge61">0</div><div class="dash-metric-sub" style="color:var(--warning);">Review pricing</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">90+ days</div><div class="dash-metric-value" style="color:var(--danger);" id="dashAge90">0</div><div class="dash-metric-sub" style="color:var(--danger);">Discount / liquidate</div></div>
     </div>
   </div>
 </div>
@@ -1511,13 +1444,20 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </tbody></table></div>
         <button class="btn btn-success" style="width:100%;" onclick="showToast('All karat prices updated & applied to full inventory')">Update All Prices Now</button>
       </div>
-      <div class="card"><div class="card-title">14K Gold — Price History</div>
-        <div class="chart-bar-wrap">
-          <div class="chart-bar-row"><div class="chart-bar-label">Jan 15</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:82%;"></div></div><div class="chart-bar-val">$37.10/g</div></div>
-          <div class="chart-bar-row"><div class="chart-bar-label">Jan 10</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:80%;"></div></div><div class="chart-bar-val">$36.80/g</div></div>
-          <div class="chart-bar-row"><div class="chart-bar-label">Jan 05</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:78%;"></div></div><div class="chart-bar-val">$36.20/g</div></div>
-          <div class="chart-bar-row"><div class="chart-bar-label">Dec 30</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:75%;"></div></div><div class="chart-bar-val">$35.60/g</div></div>
+      <div class="card">
+        <div class="card-title">Gold Rate History (30 days)</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <button class="btn btn-gold btn-sm" onclick="showKaratHistory('14K',this)">14K</button>
+          <button class="btn btn-outline btn-sm" onclick="showKaratHistory('10K',this)">10K</button>
+          <button class="btn btn-outline btn-sm" onclick="showKaratHistory('18K',this)">18K</button>
+          <button class="btn btn-outline btn-sm" onclick="showKaratHistory('22K',this)">22K</button>
+          <button class="btn btn-outline btn-sm" onclick="showKaratHistory('925',this)">925</button>
+          <button class="btn btn-outline btn-sm" onclick="showKaratHistory('Platinum',this)">Platinum</button>
         </div>
+        <div id="karatHistoryChart" class="chart-bar-wrap">
+          <div style="text-align:center;color:var(--text3);font-size:13px;padding:20px;">No rate history yet. Update a karat rate above to start tracking.</div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px;">Rate history is recorded each time you click Update on a karat price.</div>
       </div>
     </div>
   </div>
@@ -1890,11 +1830,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ===== DATA =====
 const lineItemData = {};
-let liCounter = 2;
+let liCounter = 0;
 let payRowCounter = 1;
 let extraTaxCounter = 0;
-lineItemData['li-1'] = { name:'Diamond Solitaire Ring 14K', sku:'R-14K-001', price:1850 };
-lineItemData['li-2'] = { name:'Tennis Bracelet 925', sku:'B-925-002', price:320 };
 
 // Company defaults
 let companyData = {
@@ -1944,29 +1882,7 @@ function syncInwardRatesFromAdmin() {
   if (t925 && document.getElementById('tick925'))  document.getElementById('tick925').textContent  = '$' + parseFloat(t925.value).toFixed(2);
 }
 
-// Called when admin hits Update on a specific karat
-async function applyKaratRate(karat) {
-  syncInwardRatesFromAdmin();
-  recalcAllItems();
-  try {
-    const rates = { '10K': parseFloat(document.getElementById('adminRate10K')?.value)||0, '14K': parseFloat(document.getElementById('adminRate14K')?.value)||0, '18K': parseFloat(document.getElementById('adminRate18K')?.value)||0, '22K': parseFloat(document.getElementById('adminRate22K')?.value)||0, '925': parseFloat(document.getElementById('adminRate925')?.value)||0 };
-    await window.DB.saveSettings({ karatRates: rates });
-    _settings.karatRates = rates;
-    showToast(karat + ' rate saved & applied');
-  } catch(e) { showToast('⚠ ' + e.message); }
-}
-
-// Also wire the "Update All" button
-async function updateAllKaratRates() {
-  syncInwardRatesFromAdmin();
-  recalcAllItems();
-  try {
-    const rates = { '10K': parseFloat(document.getElementById('adminRate10K')?.value)||0, '14K': parseFloat(document.getElementById('adminRate14K')?.value)||0, '18K': parseFloat(document.getElementById('adminRate18K')?.value)||0, '22K': parseFloat(document.getElementById('adminRate22K')?.value)||0, '925': parseFloat(document.getElementById('adminRate925')?.value)||0 };
-    await window.DB.saveSettings({ karatRates: rates });
-    _settings.karatRates = rates;
-    showToast('✓ All karat rates saved to all devices');
-  } catch(e) { showToast('⚠ ' + e.message); }
-}
+// (applyKaratRate and updateAllKaratRates are defined in the loadSettings section above)
 
 function startClock() {
   function tick() {
@@ -2719,7 +2635,30 @@ function toggleClientMode(mode) {
 
 function searchClients(val) {
   const results = document.getElementById('clientSearchResults');
-  results.style.display = val.length > 0 ? 'block' : 'none';
+  if (!val || val.length < 1) { results.style.display = 'none'; return; }
+  results.style.display = 'block';
+  const q = val.toLowerCase();
+  const matches = _customers.filter(c =>
+    (c.first+' '+c.last).toLowerCase().includes(q) ||
+    (c.phone||'').includes(q) ||
+    (c.id||'').toLowerCase().includes(q) ||
+    (c.email||'').toLowerCase().includes(q)
+  ).slice(0, 8);
+  if (!matches.length) {
+    results.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:var(--text3);">No clients found.</div>';
+    return;
+  }
+  const tierColor = t => t==='Platinum'?'background:#E8E0F0;color:#5A3E8A;':t==='Gold'?'background:var(--gold-pale);color:var(--gold-dark);':'background:var(--beige2);color:var(--text2);';
+  results.innerHTML = matches.map(c => `
+    <div onclick="selectClient('${c.id}','${(c.first||'')+' '+(c.last||'')}','${c.phone||''}','${c.email||''}')"
+      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);"
+      onmouseover="this.style.background='var(--beige)'" onmouseout="this.style.background=''">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div><strong>${c.first||''} ${c.last||''}</strong> <span style="font-size:12px;color:var(--text3);">${c.id}</span></div>
+        <span class="badge" style="${tierColor(c.tier||'Silver')}">${c.tier||'Silver'}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text2);">${c.phone||'—'} · ${c.invoiceCount||0} invoices · $${(c.totalSpend||0).toLocaleString()}</div>
+    </div>`).join('');
 }
 
 function selectClient(id, name, phone, email) {
@@ -2826,22 +2765,38 @@ function updateFilterTotal() {
 
 function filterExpenseByPeriod(period) {
   if (!period) return;
-  const labels = { month: 'This Month', lastmonth: 'Last Month', week: 'This Week', year: 'This Year' };
-  const label = labels[period] || period;
-  // Clear date range since we're using period
+  const now = new Date();
+  let filtered = [];
+  let label = '';
+  if (period === 'month') {
+    filtered = _expenses.filter(e => { const d=e.date?new Date(e.date):null; return d&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); });
+    label = 'This Month';
+  } else if (period === 'lastmonth') {
+    const lm = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    filtered = _expenses.filter(e => { const d=e.date?new Date(e.date):null; return d&&d.getMonth()===lm.getMonth()&&d.getFullYear()===lm.getFullYear(); });
+    label = 'Last Month';
+  } else if (period === 'week') {
+    const ws = new Date(now); ws.setDate(now.getDate()-now.getDay());
+    filtered = _expenses.filter(e => e.date && new Date(e.date) >= ws);
+    label = 'This Week';
+  } else if (period === 'year') {
+    filtered = _expenses.filter(e => { const d=e.date?new Date(e.date):null; return d&&d.getFullYear()===now.getFullYear(); });
+    label = 'This Year';
+  }
   document.getElementById('removeFrom').value = '';
   document.getElementById('removeTo').value = '';
-  showExpensePanel('Expenses — ' + label, '5 entries');
+  showExpensePanelData(filtered, 'Expenses — ' + label);
 }
 
 function autoShowExpenses() {
   const from = document.getElementById('removeFrom').value;
   const to = document.getElementById('removeTo').value;
   if (from && to) {
-    const fmtFrom = new Date(from + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-    const fmtTo   = new Date(to   + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    const filtered = _expenses.filter(e => e.date >= from && e.date <= to);
+    const fmtFrom = new Date(from+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const fmtTo   = new Date(to  +'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
     document.getElementById('periodSelect').value = '';
-    showExpensePanel('Expenses — ' + fmtFrom + ' to ' + fmtTo, '5 entries');
+    showExpensePanelData(filtered, 'Expenses — ' + fmtFrom + ' to ' + fmtTo);
   }
 }
 
@@ -3006,11 +2961,77 @@ async function loadCustomers() {
 async function loadInventory() {
   _inventory = await window.DB.getInventory();
   renderInventoryTable(_inventory);
+  refreshRecentInward();
 }
 
 async function loadInvoices() {
   _invoices = await window.DB.getInvoices();
   renderInvoiceHistory(_invoices);
+  const imeta = document.getElementById('invoiceCountMeta');
+  if (imeta) imeta.textContent = _invoices.length + ' invoice' + (_invoices.length===1?'':'s');
+}
+
+// ── Karat rate history (stored in Firebase settings) ──
+let _rateHistory = {};
+
+async function applyKaratRate(karat) {
+  syncInwardRatesFromAdmin();
+  recalcAllItems();
+  try {
+    const rates = { '10K': parseFloat(document.getElementById('adminRate10K')?.value)||0, '14K': parseFloat(document.getElementById('adminRate14K')?.value)||0, '18K': parseFloat(document.getElementById('adminRate18K')?.value)||0, '22K': parseFloat(document.getElementById('adminRate22K')?.value)||0, '925': parseFloat(document.getElementById('adminRate925')?.value)||0, 'Platinum': parseFloat(document.getElementById('adminRatePlatinum')?.value)||0 };
+    // Log to rate history
+    const today = new Date().toISOString().split('T')[0];
+    if (!_rateHistory[karat]) _rateHistory[karat] = [];
+    _rateHistory[karat] = _rateHistory[karat].filter(e => e.date !== today);
+    _rateHistory[karat].unshift({ date: today, rate: rates[karat] });
+    _rateHistory[karat] = _rateHistory[karat].slice(0, 30);
+    await window.DB.saveSettings({ karatRates: rates, rateHistory: _rateHistory });
+    _settings.karatRates = rates;
+    _settings.rateHistory = _rateHistory;
+    showToast('✓ ' + karat + ' rate saved & logged');
+    showKaratHistory(karat, null);
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+function showKaratHistory(karat, btnEl) {
+  // Update button styles
+  document.querySelectorAll('#sub-karat .btn').forEach(b => b.className = 'btn btn-outline btn-sm');
+  if (btnEl) btnEl.className = 'btn btn-gold btn-sm';
+  const el = document.getElementById('karatHistoryChart');
+  if (!el) return;
+  const history = (_settings.rateHistory || _rateHistory)?.[karat] || [];
+  if (!history.length) {
+    el.innerHTML = `<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px;">No history for ${karat} yet. Update the rate above to start tracking.</div>`;
+    return;
+  }
+  const max = Math.max(...history.map(e=>e.rate));
+  const min = Math.min(...history.map(e=>e.rate));
+  const range = max - min || 1;
+  el.innerHTML = history.map((e,i) => {
+    const barPct = 20 + Math.round((e.rate-min)/range*75);
+    return `<div class="chart-bar-row">
+      <div class="chart-bar-label" style="font-size:11px;">${e.date}</div>
+      <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${barPct}%;${i>0?'background:var(--beige4);':''}"></div></div>
+      <div class="chart-bar-val">$${e.rate.toFixed(2)}/g</div>
+    </div>`;
+  }).join('');
+}
+
+// Update recentInwardBody after saving inventory
+function refreshRecentInward() {
+  const tbody = document.getElementById('recentInwardBody');
+  if (!tbody) return;
+  const recent = [..._inventory].sort((a,b)=>(b.inwardDate||'').localeCompare(a.inwardDate||'')).slice(0,10);
+  if (!recent.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px;">No stock inwarded yet.</td></tr>'; return; }
+  tbody.innerHTML = recent.map(i => `
+    <tr>
+      <td>${i.inwardDate||'—'}</td>
+      <td><code style="font-size:11px;">${i.sku||'—'}</code></td>
+      <td>${i.itemName||'—'}</td>
+      <td style="font-size:12px;">${i.vendorInv||'—'}</td>
+      <td style="font-weight:500;color:var(--gold-dark);">$${(i.cost||0).toLocaleString()}</td>
+      <td>${i.vendor||'—'}</td>
+    </tr>`).join('');
 }
 
 async function loadExpenses() {
@@ -3022,11 +3043,15 @@ async function loadSettings() {
   _settings = await window.DB.getSettings();
   if (_settings.karatRates) {
     const r = _settings.karatRates;
-    ['10K','14K','18K','22K','925'].forEach(k => {
+    ['10K','14K','18K','22K','925','Platinum'].forEach(k => {
       const el = document.getElementById('adminRate' + k);
       if (el && r[k]) el.value = r[k];
     });
     syncInwardRatesFromAdmin();
+  }
+  if (_settings.rateHistory) {
+    _rateHistory = _settings.rateHistory;
+    showKaratHistory('14K', null);
   }
   if (_settings.company) {
     const co = _settings.company;
@@ -3035,28 +3060,46 @@ async function loadSettings() {
   }
 }
 
+async function updateAllKaratRates() {
+  syncInwardRatesFromAdmin();
+  recalcAllItems();
+  try {
+    const rates = { '10K': parseFloat(document.getElementById('adminRate10K')?.value)||0, '14K': parseFloat(document.getElementById('adminRate14K')?.value)||0, '18K': parseFloat(document.getElementById('adminRate18K')?.value)||0, '22K': parseFloat(document.getElementById('adminRate22K')?.value)||0, '925': parseFloat(document.getElementById('adminRate925')?.value)||0, 'Platinum': parseFloat(document.getElementById('adminRatePlatinum')?.value)||0 };
+    await window.DB.saveSettings({ karatRates: rates, rateHistory: _rateHistory });
+    _settings.karatRates = rates;
+    showToast('✓ All karat rates saved to all devices');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
 // ── Render functions ──
 function renderCustomerTable(list) {
   const tbody = document.getElementById('clientTableBody') || document.getElementById('clientsTableBody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:28px;">No customers yet — add your first client above.</td></tr>'; return; }
-  tbody.innerHTML = list.map(c => {
-    const tier = c.tier || 'Silver';
-    const tc = tier==='Platinum'?'badge-blue':tier==='Gold'?'badge-gold':'badge-gray';
-    return `<tr>
-      <td><code style="font-size:11px;background:var(--beige2);padding:2px 6px;border-radius:3px;">${c.id.slice(-8).toUpperCase()}</code></td>
-      <td style="font-weight:500;">${c.first||''} ${c.last||''}</td>
-      <td>${c.phone||'—'}</td>
-      <td style="font-size:12px;">${c.email||'—'}</td>
-      <td><span class="badge ${tc}">${tier}</span></td>
-      <td>${c.source||'—'}</td>
-      <td>${c.invoiceCount||0}</td>
-      <td style="font-weight:500;color:var(--gold-dark);">$${(c.totalSpend||0).toLocaleString()}</td>
-      <td><button class="btn btn-outline btn-sm" onclick="viewClient('${c.id}')">View</button></td>
-    </tr>`;
-  }).join('');
-  const meta = document.querySelector('#hdr-clientsearch .collapse-header-meta');
-  if (meta) meta.textContent = list.length + ' clients total';
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text3);padding:28px;">No customers yet — add your first client above.</td></tr>'; }
+  else {
+    tbody.innerHTML = list.map(c => {
+      const tier = c.tier || 'Silver';
+      const tc = tier==='Platinum'?'badge-blue':tier==='Gold'?'badge-gold':'badge-gray';
+      return `<tr>
+        <td><code style="font-size:11px;background:var(--beige2);padding:2px 6px;border-radius:3px;">${c.id.slice(-8).toUpperCase()}</code></td>
+        <td style="font-weight:500;">${c.first||''} ${c.last||''}</td>
+        <td>${c.phone||'—'}</td>
+        <td style="font-size:12px;">${c.email||'—'}</td>
+        <td>${c.source||'—'}</td>
+        <td>${c.invoiceCount||0}</td>
+        <td>—</td>
+        <td style="font-weight:500;color:var(--gold-dark);">$${(c.totalSpend||0).toLocaleString()}</td>
+        <td><span class="badge ${tc}">${tier}</span></td>
+        <td>${c.sales||'—'}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="viewClient('${c.id}')">View</button></td>
+      </tr>`;
+    }).join('');
+  }
+  const meta = document.getElementById('clientCountMeta');
+  if (meta) meta.textContent = _customers.length + ' client' + (_customers.length===1?'':'s');
+  // Also update invoice count meta
+  const imeta = document.getElementById('invoiceCountMeta');
+  if (imeta) imeta.textContent = _invoices.length + ' invoice' + (_invoices.length===1?'':'s');
 }
 
 function renderInventoryTable(list) {
@@ -3143,12 +3186,83 @@ function updateExpenseMetrics() {
     const el = document.getElementById(id);
     if (!el) return;
     const vEl = el.querySelector('.metric-value'); if (vEl) vEl.textContent = '$'+Math.round(val).toLocaleString();
-    const sEl = el.querySelector('.metric-sub');   if (sEl && sub) sEl.textContent = sub;
+    const sEl = el.querySelector('.metric-sub');   if (sEl && sub !== undefined) sEl.textContent = sub;
   };
-  setCard('expMetricToday',  sum(todayExp),  todayExp.length+' entries');
-  setCard('expMetricWeek',   sum(weekExp),   '');
+  setCard('expMetricToday',  sum(todayExp),  todayExp.length+' entr'+(todayExp.length===1?'y':'ies'));
+  setCard('expMetricWeek',   sum(weekExp),   weekExp.length+' entries');
   setCard('expMetricMonth',  sum(monthExp),  'Budget: —');
   setCard('expMetricYTD',    sum(ytdExp),    'Jan–present');
+
+  // Monthly breakdown by category chart
+  const catMap = {};
+  monthExp.forEach(e => { const c=e.category||'Misc'; catMap[c]=(catMap[c]||0)+(parseFloat(e.amount)||0); });
+  const chartEl = document.getElementById('expenseChartWrap');
+  if (chartEl) {
+    const sorted = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+    if (!sorted.length) {
+      chartEl.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px;">No expenses this month yet.</div>';
+    } else {
+      const max = sorted[0][1];
+      chartEl.innerHTML = sorted.map(([label,val],i) => `
+        <div class="chart-bar-row">
+          <div class="chart-bar-label">${label}</div>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${max>0?Math.round(val/max*100):0}%;${i>0?'background:var(--beige4);':''}"></div></div>
+          <div class="chart-bar-val">$${Math.round(val).toLocaleString()}</div>
+        </div>`).join('');
+    }
+  }
+}
+
+function renderFilteredExpenses(expArr, title) {
+  const isMaster = currentUser && currentUser.role === 'MasterAdmin';
+  const hdr = document.getElementById('expActionHeader');
+  if (hdr) hdr.style.display = isMaster ? '' : 'none';
+  const tbody = document.getElementById('filteredExpenseBody');
+  if (!tbody) return;
+  if (!expArr.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:16px;">No expenses found for this period.</td></tr>';
+    document.getElementById('filterPanelMeta').textContent = '0 entries';
+    document.getElementById('filterPanelTotal').textContent = 'Total: $0.00';
+    return;
+  }
+  const total = expArr.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  tbody.innerHTML = expArr.map(e => `
+    <tr>
+      <td>${e.date||'—'}</td>
+      <td><span class="badge badge-gray">${e.category||'—'}</span></td>
+      <td>${e.description||'—'}</td>
+      <td style="font-weight:500;">$${parseFloat(e.amount||0).toFixed(2)}</td>
+      <td>${e.member||'—'}</td>
+      <td>—</td>
+      ${isMaster ? `<td><button class="btn btn-danger btn-sm btn-icon" onclick="deleteExpenseRow('${e.id}')">✕</button></td>` : '<td style="display:none;"></td>'}
+    </tr>`).join('');
+  document.getElementById('filterPanelMeta').textContent = expArr.length + ' entr' + (expArr.length===1?'y':'ies');
+  document.getElementById('filterPanelTotal').textContent = 'Total: $' + total.toFixed(2);
+}
+
+async function deleteExpenseRow(id) {
+  if (currentUser?.role !== 'MasterAdmin') { showToast('⚠ Only MasterAdmin can delete expenses'); return; }
+  if (!confirm('Delete this expense entry?')) return;
+  try {
+    await window.DB.deleteExpense(id);
+    _expenses = _expenses.filter(e => e.id !== id);
+    updateExpenseMetrics();
+    refreshDashboard();
+    // Re-render filtered panel if open
+    const panel = document.getElementById('expenseFilterPanel');
+    if (panel && panel.style.display !== 'none') {
+      const title = document.getElementById('filterPanelTitle').textContent;
+      showExpensePanelData(_expenses, title);
+    }
+    showToast('✓ Expense deleted');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+function showExpensePanelData(expArr, title) {
+  document.getElementById('filterPanelTitle').textContent = title;
+  document.getElementById('expenseFilterPanel').style.display = 'block';
+  renderFilteredExpenses(expArr, title);
+  document.getElementById('expenseFilterPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function refreshDashboard() {
@@ -3161,6 +3275,7 @@ function refreshDashboard() {
   const totalExp = monthExp.reduce((s,e) => s+(parseFloat(e.amount)||0), 0);
   const ebitda   = gp - totalExp;
   const units    = paid.reduce((s,i) => s+(i.items||[]).reduce((x,it)=>x+(it.qty||1),0), 0);
+  const inStock  = _inventory.filter(i => i.status !== 'Sold').length;
   const fmt = v => '$'+Math.round(v).toLocaleString();
   const set = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
   set('dashRevenue',     fmt(revenue));
@@ -3169,7 +3284,87 @@ function refreshDashboard() {
   set('dashEBITDA',      fmt(ebitda));
   set('dashInvoices',    paid.length);
   set('dashUnits',       units);
-  if (document.getElementById('dashMargin') && revenue > 0) document.getElementById('dashMargin').textContent = 'Margin: '+(gp/revenue*100).toFixed(1)+'%';
+  set('dashStock',       'In stock: ' + inStock);
+  if (document.getElementById('dashMargin')) document.getElementById('dashMargin').textContent = revenue > 0 ? 'Margin: '+(gp/revenue*100).toFixed(1)+'%' : 'Margin: —';
+
+  // Sales by Category chart
+  const catMap = {};
+  paid.forEach(inv => (inv.items||[]).forEach(it => {
+    const cat = it.category || (it.name||'').split(' ').pop() || 'Other';
+    catMap[cat] = (catMap[cat]||0) + (it.sellPrice||0);
+  }));
+  renderBarChart('dashCatChart', catMap, 'No sales data yet.');
+
+  // Sales by Karat chart
+  const karatMap = {};
+  paid.forEach(inv => (inv.items||[]).forEach(it => {
+    const k = it.karat || '—';
+    karatMap[k] = (karatMap[k]||0) + (it.sellPrice||0);
+  }));
+  renderBarChart('dashKaratChart', karatMap, 'No sales data yet.');
+
+  // Sales by Team Member
+  const teamMap = {};
+  paid.forEach(inv => {
+    const sp = inv.salesPerson || 'Unknown';
+    if (!teamMap[sp]) teamMap[sp] = {count:0,rev:0};
+    teamMap[sp].count++;
+    teamMap[sp].rev += inv.total||0;
+  });
+  const teamBody = document.getElementById('dashTeamBody');
+  if (teamBody) {
+    const rows = Object.entries(teamMap).sort((a,b)=>b[1].rev-a[1].rev);
+    teamBody.innerHTML = rows.length ? rows.map(([name,d]) =>
+      `<tr><td>${name}</td><td>${d.count}</td><td>${fmt(d.rev)}</td><td>${fmt(d.count?d.rev/d.count:0)}</td></tr>`
+    ).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:16px;">No data yet.</td></tr>';
+  }
+
+  // Payment Mode Breakdown
+  const payMap = {};
+  paid.forEach(inv => (inv.payments||[]).forEach(p => {
+    const m = p.mode||'Unknown';
+    if (!payMap[m]) payMap[m] = {count:0,amt:0};
+    payMap[m].count++;
+    payMap[m].amt += p.amount||0;
+  }));
+  const payBody = document.getElementById('dashPaymentBody');
+  if (payBody) {
+    const rows = Object.entries(payMap).sort((a,b)=>b[1].amt-a[1].amt);
+    payBody.innerHTML = rows.length ? rows.map(([mode,d]) =>
+      `<tr><td style="text-transform:capitalize;">${mode}</td><td>${d.count}</td><td>${fmt(d.amt)}</td></tr>`
+    ).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:16px;">No data yet.</td></tr>';
+  }
+
+  // Aged Inventory
+  const today = new Date();
+  const ages = {a0:0, a31:0, a61:0, a90:0};
+  _inventory.filter(i=>i.status!=='Sold').forEach(item => {
+    const d = item.inwardDate ? new Date(item.inwardDate+'T00:00:00') : (item.createdAt?.toDate ? item.createdAt.toDate() : null);
+    if (!d) { ages.a0++; return; }
+    const days = Math.floor((today-d)/(1000*60*60*24));
+    if (days <= 30) ages.a0++;
+    else if (days <= 60) ages.a31++;
+    else if (days <= 90) ages.a61++;
+    else ages.a90++;
+  });
+  set('dashAge0',  ages.a0);
+  set('dashAge31', ages.a31);
+  set('dashAge61', ages.a61);
+  set('dashAge90', ages.a90);
+}
+
+function renderBarChart(containerId, dataMap, emptyMsg) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const sorted = Object.entries(dataMap).sort((a,b)=>b[1]-a[1]);
+  if (!sorted.length) { el.innerHTML = `<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px;">${emptyMsg}</div>`; return; }
+  const max = sorted[0][1];
+  el.innerHTML = sorted.map(([label, val], i) => `
+    <div class="chart-bar-row">
+      <div class="chart-bar-label">${label}</div>
+      <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${max>0?Math.round(val/max*100):0}%;${i>0?'background:var(--beige4);':''}"></div></div>
+      <div class="chart-bar-val">$${Math.round(val).toLocaleString()}</div>
+    </div>`).join('');
 }
 
 function openEditInventoryModal(id) {
