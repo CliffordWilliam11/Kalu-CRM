@@ -2307,13 +2307,14 @@ async function handleReceiptUpload(input, rowId, btnId) {
 let _vendors = [];
 
 async function loadVendors() {
-  _vendors = await window.DB.getVendors();
-  renderVendorList();
-  // Sync vendor dropdown in manual inward
-  const sel = document.getElementById('manualVendorName');
-  if (sel) {
-    sel.innerHTML = '<option>-- Select Vendor --</option>' + _vendors.map(v=>`<option>${v.name}</option>`).join('');
-  }
+  try {
+    _vendors = await window.DB.getVendors();
+    renderVendorList();
+    const sel = document.getElementById('manualVendorName');
+    if (sel) {
+      sel.innerHTML = '<option>-- Select Vendor --</option>' + _vendors.map(v=>`<option>${v.name}</option>`).join('');
+    }
+  } catch(e) { console.warn('loadVendors error:', e); }
 }
 
 function renderVendorList() {
@@ -2370,14 +2371,12 @@ let _firestoreUsers = [];
 async function loadUsers() {
   try {
     _firestoreUsers = await window.DB.getUsers();
-    // Merge into USERS_DB so Firestore-saved users can log in
     _firestoreUsers.forEach(u => {
       if (u.username && u.pass) {
         USERS_DB[u.username] = { pass: u.pass, role: u.role||'Sales', name: u.name||u.username };
       }
     });
     renderUsersList();
-    // Refresh permissions dropdown if master admin
     if (currentUser?.role === 'MasterAdmin') {
       const sel = document.getElementById('permUserSelect');
       if (sel) {
@@ -2386,7 +2385,7 @@ async function loadUsers() {
             .map(([k,v])=>`<option value="${k}">${v.name} (${v.role})</option>`).join('');
       }
     }
-  } catch(e) { console.warn('loadUsers:', e); }
+  } catch(e) { console.warn('loadUsers error:', e); }
 }
 
 function renderUsersList() {
@@ -3245,7 +3244,7 @@ async function loadAllData() {
   const dot = document.getElementById('fbStatus');
   if (dot) dot.style.background = '#f5a623';
   try {
-    await Promise.all([loadCustomers(), loadInventory(), loadInvoices(), loadExpenses(), loadSettings(), loadVendors(), loadUsers()]);
+    await Promise.all([loadCustomers(), loadInventory(), loadInvoices(), loadExpenses(), loadSettings()]);
     refreshDashboard();
     if (dot) dot.style.background = '#4CAF50';
     showToast('✓ Ready');
@@ -3254,6 +3253,9 @@ async function loadAllData() {
     showToast('⚠ Firebase error — check connection');
     console.error('loadAllData:', e);
   }
+  // Load vendors and users separately — don't let them break the main load
+  try { await loadVendors(); } catch(e) { console.warn('loadVendors:', e); }
+  try { await loadUsers();   } catch(e) { console.warn('loadUsers:', e); }
 }
 
 async function loadCustomers() {
