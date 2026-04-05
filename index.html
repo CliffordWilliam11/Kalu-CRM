@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kalü Jewelry — Management System</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -207,13 +207,131 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
-  .main { padding: 12px; }
-  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  .karat-ticker { gap: 8px; }
-  .topbar { padding: 0 12px; }
-  .nav-tabs { padding: 0 12px; }
-  .li-row { grid-template-columns: 1fr 50px 75px 50px 75px 28px; gap: 4px; font-size: 12px; }
-  .nav-tab { padding: 10px 12px; font-size: 12px; }
+  /* ── CORE OVERFLOW FIX ── */
+  html, body { overflow-x: hidden; width: 100%; }
+  .main { padding: 12px; max-width: 100vw; overflow-x: hidden; }
+  .topbar { padding: 0 10px; }
+  .nav-tabs { padding: 0 8px; }
+  .nav-tab { padding: 8px 10px; font-size: 11px; }
+
+  /* ── TOPBAR: hide karat ticker text on very small ── */
+  .karat-label { font-size: 8px; }
+  .karat-value { font-size: 11px; }
+  .karat-ticker { gap: 6px; }
+  .sep { height: 20px; }
+  .topbar-name { font-size: 17px; }
+
+  /* ── ALL GENERIC GRIDS STACK ── */
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr !important; }
+
+  /* ── DASHBOARD: 6-metric row → 2 columns ── */
+  [style*="repeat(6,1fr)"],
+  [style*="repeat(6, 1fr)"] {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  .dash-metric-value { font-size: 20px; }
+
+  /* ── DASHBOARD: 4-column rows → 2 cols ── */
+  [style*="repeat(4,1fr)"],
+  [style*="repeat(4, 1fr)"] {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* ── CUSTOMER FORM: 5-col → stack ── */
+  [style*="grid-template-columns:1fr 1fr 1fr 1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── BILLING LINE ITEMS: collapse columns ── */
+  .li-row {
+    grid-template-columns: 1fr 44px 72px 44px 72px 28px !important;
+    gap: 4px !important;
+    font-size: 11px !important;
+  }
+
+  /* ── EXPENSE ROW: 7-col grid → stacked card ── */
+  .exp-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 12px !important;
+    background: var(--beige) !important;
+    border-radius: var(--radius) !important;
+    border: 1px solid var(--border) !important;
+    margin-bottom: 10px !important;
+  }
+  /* Expense column headers — hide on mobile, labels per field are enough */
+  #tab-expenses .card > div[style*="grid-template-columns:130px"] {
+    display: none !important;
+  }
+
+  /* ── VENDOR BATCH HEADER: 3-col → stack ── */
+  [style*="grid-template-columns:1fr 1fr 200px"],
+  [style*="grid-template-columns: 1fr 1fr 200px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── GOLD RATES ROW: 4-col → 2-col ── */
+  [style*="grid-template-columns:repeat(4,1fr)"],
+  [style*="grid-template-columns: repeat(4,1fr)"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* ── ADMIN COMPANY: side-by-side → stack ── */
+  [style*="grid-template-columns:1fr 380px"],
+  [style*="grid-template-columns: 1fr 380px"],
+  [style*="grid-template-columns:480px 1fr"],
+  [style*="grid-template-columns: 480px 1fr"],
+  [style*="grid-template-columns:400px 1fr"],
+  [style*="grid-template-columns: 400px 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── VENDOR NEW USER FORM ── */
+  [style*="grid-template-columns:1fr 1fr 140px 1fr auto"],
+  [style*="grid-template-columns: 1fr 1fr 140px 1fr auto"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* ── STOCK INWARD: vendor 3-col → stack ── */
+  [style*="grid-template-columns:1fr 1fr 200px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── REMOVE EXPENSES: flex row → wrap ── */
+  #tab-expenses .card > div[style*="display:flex"] {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+
+  /* ── MODALS: full width ── */
+  .modal { padding: 16px; border-radius: var(--radius); }
+
+  /* ── TABLE OVERFLOW: ensure horizontal scroll ── */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: calc(100vw - 24px); }
+
+  /* ── CARDS ── */
+  .card { padding: 14px; }
+  .collapse-body { padding: 14px; }
+  .card-title { font-size: 17px; }
+
+  /* ── INVOICE TOTALS: remove max-width constraint ── */
+  [style*="max-width:460px"] { max-width: 100% !important; }
+
+  /* ── BUTTONS: wrap nicely ── */
+  .btn { font-size: 12px; padding: 7px 12px; }
+  .btn-sm { font-size: 11px; padding: 4px 8px; }
+
+  /* ── LOGIN CARD ── */
+  .login-card { padding: 28px 20px; }
+
+  /* ── TOPBAR SUB ROW ── */
+  .topbar-sub { display: none; }
 }
 
 @media print {
@@ -222,7 +340,29 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   #printContent { position: fixed; top: 0; left: 0; width: 100%; background: white; z-index: 9999; padding: 32px; }
   .no-print { display: none !important; }
 }
-/* LOGIN SCREEN */
+/* ── NAMED CLASSES FOR PROBLEM GRIDS ── */
+.dash-grid-6 { display: grid; grid-template-columns: repeat(6,1fr); gap: 12px; margin-bottom: 20px; }
+.dash-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+.gold-rates-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 16px; padding: 12px 14px; background: var(--beige2); border-radius: var(--radius); border: 1px solid var(--border); }
+.vendor-batch-grid { display: grid; grid-template-columns: 1fr 1fr 200px; gap: 14px; margin-bottom: 12px; padding: 14px; background: var(--gold-pale); border-radius: var(--radius); border: 1px solid var(--gold-light); }
+.expense-col-headers { display: grid; grid-template-columns: 130px 150px 1fr 110px 150px 130px 36px; gap: 8px; padding: 0 4px; margin-bottom: 6px; }
+.cust-top-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.admin-two-col { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+.admin-karat-grid { display: grid; grid-template-columns: 480px 1fr; gap: 20px; }
+.new-user-grid { display: grid; grid-template-columns: 1fr 1fr 140px 1fr auto; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+
+@media (max-width: 768px) {
+  .dash-grid-6 { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .dash-grid-4 { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .gold-rates-grid { grid-template-columns: 1fr 1fr !important; }
+  .vendor-batch-grid { grid-template-columns: 1fr !important; }
+  .expense-col-headers { display: none !important; }
+  .cust-top-grid { grid-template-columns: 1fr !important; }
+  .admin-two-col { grid-template-columns: 1fr !important; }
+  .admin-karat-grid { grid-template-columns: 1fr !important; }
+  .new-user-grid { grid-template-columns: 1fr 1fr !important; }
+}
+
 .login-screen { position:fixed; inset:0; background:var(--beige); z-index:9999; display:flex; align-items:center; justify-content:center; }
 .login-card { background:var(--cream); border:1px solid var(--border); border-radius:var(--radius-lg); padding:40px; width:100%; max-width:380px; box-shadow:0 4px 24px rgba(44,36,22,0.14); text-align:center; }
 .login-logo { width:56px; height:56px; background:var(--gold-mid); border-radius:10px; display:flex; align-items:center; justify-content:center; font-family:"Cormorant Garamond",serif; font-size:28px; font-weight:600; color:var(--gold-dark); margin:0 auto 12px; }
@@ -306,16 +446,19 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
     </div>
     <div class="collapse-body open" id="body-newclient">
-      <div class="grid-3">
-        <div class="form-group"><label>Full Name *</label><input type="text" class="form-control" id="newClientName" placeholder="First and last name"></div>
-        <div class="form-group"><label>Phone *</label><input type="text" class="form-control" id="newClientPhone" placeholder="+1 (555) 000-0000"></div>
-        <div class="form-group"><label>Email</label><input type="email" class="form-control" id="newClientEmail" placeholder="email@example.com"></div>
+      <!-- Duplicate check alert -->
+      <div id="dupAlert" style="display:none;margin-bottom:12px;padding:12px 16px;background:var(--warning-bg);border:1px solid #e8d090;border-radius:var(--radius);">
+        <div style="font-size:13px;font-weight:600;color:var(--warning);margin-bottom:8px;">⚠ Possible duplicate — please check before saving:</div>
+        <div id="dupMatches" style="display:flex;flex-direction:column;gap:6px;"></div>
       </div>
-      <div class="grid-3">
-        <div class="form-group"><label>Address</label><input type="text" class="form-control" id="newClientAddr" placeholder="Street, City, State, ZIP"></div>
-        <div class="form-group"><label>Date of Birth</label><input type="date" class="form-control" id="newClientDOB"></div>
-        <div class="form-group"><label>Lead Source</label>
-          <select class="form-control" id="newClientSource">
+      <div class="cust-top-grid">
+        <div class="form-group" style="margin-bottom:0;"><label>First Name *</label><input type="text" class="form-control" id="newClientFirst" placeholder="First name" oninput="checkDuplicateClient()"></div>
+        <div class="form-group" style="margin-bottom:0;"><label>Last Name *</label><input type="text" class="form-control" id="newClientLast" placeholder="Last name" oninput="checkDuplicateClient()"></div>
+        <div class="form-group" style="margin-bottom:0;"><label>Phone *</label><input type="text" class="form-control" id="newClientPhone" placeholder="+1 (555) 000-0000" oninput="checkDuplicateClient()"></div>
+        <div class="form-group" style="margin-bottom:0;"><label>Email</label><input type="email" class="form-control" id="newClientEmail" placeholder="email@example.com" oninput="checkDuplicateClient()"></div>
+        <div class="form-group" style="margin-bottom:0;"><label>Lead Source *</label>
+          <select class="form-control" id="newClientSource" required>
+            <option value="">-- Select --</option>
             <option>Walk-in</option>
             <option>Instagram</option>
             <option>Facebook</option>
@@ -326,7 +469,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </div>
       </div>
       <div class="grid-3">
+        <div class="form-group"><label>Address</label><input type="text" class="form-control" id="newClientAddr" placeholder="Street, City, State, ZIP"></div>
+        <div class="form-group"><label>Date of Birth</label><input type="date" class="form-control" id="newClientDOB"></div>
         <div class="form-group"><label>Anniversary</label><input type="date" class="form-control" id="newClientAnniv"></div>
+      </div>
+      <div class="grid-2">
         <div class="form-group"><label>Notes / Preferences</label><input type="text" class="form-control" id="newClientNotes" placeholder="e.g. prefers 14K, size 6 ring"></div>
         <div class="form-group"><label>Assigned Sales Person</label>
           <select class="form-control" id="newClientSales">
@@ -810,7 +957,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <th>Cost</th>
             <th>List</th>
             <th>Days In</th>
-            <th>Vendor</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -826,7 +972,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <td>7</td>
             <td>$820</td><td>$1,850</td>
             <td><span style="color:var(--success);font-weight:500;">12</span></td>
-            <td>Raj Gems</td>
             <td><span class="badge badge-green">In Stock</span></td>
             <td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="viewItemHistory('R-14K-001')">History</button><button class="btn btn-outline btn-sm">Edit</button></div></td>
           </tr>
@@ -840,7 +985,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <td>7.5"</td>
             <td>$95</td><td>$320</td>
             <td><span style="color:var(--warning);font-weight:500;">45</span></td>
-            <td>Silver Star</td>
             <td><span class="badge badge-green">In Stock</span></td>
             <td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="viewItemHistory('B-925-002')">History</button><button class="btn btn-outline btn-sm">Edit</button></div></td>
           </tr>
@@ -854,7 +998,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <td>18"</td>
             <td>$154</td><td>$480</td>
             <td><span style="color:var(--danger);font-weight:500;">98</span></td>
-            <td>Gold Exports</td>
             <td><span class="badge badge-green">In Stock</span></td>
             <td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="viewItemHistory('N-10K-003')">History</button><button class="btn btn-outline btn-sm">Edit</button></div></td>
           </tr>
@@ -868,7 +1011,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <td>1.5"</td>
             <td>$480</td><td>$1,200</td>
             <td><span style="color:var(--success);font-weight:500;">7</span></td>
-            <td>Raj Gems</td>
             <td><span class="badge badge-red">Sold</span></td>
             <td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="viewItemHistory('E-14K-004')">History</button><button class="btn btn-outline btn-sm">Edit</button></div></td>
           </tr>
@@ -882,7 +1024,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <td>—</td>
             <td>$380</td><td>$980</td>
             <td><span style="color:var(--success);font-weight:500;">22</span></td>
-            <td>Mumbai Jewels</td>
             <td><span class="badge badge-blue">Reserved</span></td>
             <td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="viewItemHistory('P-18K-005')">History</button><button class="btn btn-outline btn-sm">Edit</button></div></td>
           </tr>
@@ -896,7 +1037,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <td>—</td>
             <td>$1,688</td><td>$4,200</td>
             <td><span style="color:var(--success);font-weight:500;">5</span></td>
-            <td>Mumbai Jewels</td>
             <td><span class="badge badge-green">In Stock</span></td>
             <td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="viewItemHistory('Bg-22K-006')">History</button><button class="btn btn-outline btn-sm">Edit</button></div></td>
           </tr>
@@ -973,7 +1113,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
 
     <!-- Vendor header for this batch -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 200px;gap:14px;margin-bottom:16px;padding:14px;background:var(--gold-pale);border-radius:var(--radius);border:1px solid var(--gold-light);">
+    <div class="vendor-batch-grid">
       <div class="form-group" style="margin-bottom:0;">
         <label>Vendor Name *</label>
         <select class="form-control" id="manualVendorName">
@@ -993,6 +1133,30 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <input type="date" class="form-control" id="manualInwardDate">
       </div>
     </div>
+    <!-- Gold rate on inward day -->
+    <div class="gold-rates-grid">
+      <div class="form-group" style="margin-bottom:0;">
+        <label>10K Rate on Inward Day ($/g)</label>
+        <input type="number" class="form-control" id="inwardRate10K" placeholder="e.g. 26.50" step="0.01" oninput="recalcAllItems()">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label>14K Rate on Inward Day ($/g)</label>
+        <input type="number" class="form-control" id="inwardRate14K" placeholder="e.g. 37.10" step="0.01" oninput="recalcAllItems()">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label>18K Rate on Inward Day ($/g)</label>
+        <input type="number" class="form-control" id="inwardRate18K" placeholder="e.g. 49.40" step="0.01" oninput="recalcAllItems()">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label>925 Rate on Inward Day ($/g)</label>
+        <input type="number" class="form-control" id="inwardRate925" placeholder="e.g. 0.89" step="0.01" oninput="recalcAllItems()">
+      </div>
+    </div>
+    <div class="alert alert-info" style="margin-bottom:12px;">
+      &#x2139; <strong>Making Charges %</strong> is auto-calculated as: (Cost Price &minus; Weight &times; Gold Rate) / (Weight &times; Gold Rate) &times; 100. 
+      <strong>List Price</strong> = Weight &times; Current Gold Rate &times; (1 + Making%) &times; (1 + Margin%).
+      Update gold rates daily in Admin &rarr; Karat Pricing and the list price refreshes automatically.
+    </div>
 
     <!-- Item rows -->
     <div id="manualInwardRowsContainer">
@@ -1003,15 +1167,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
           <button class="btn btn-danger btn-icon btn-sm" onclick="removeInwardRow('mir-1')">✕ Remove</button>
         </div>
         <div class="inward-grid">
-          <div class="form-group" style="margin-bottom:0;"><label>Category *</label><select class="form-control" style="font-size:13px;"><option>Ring</option><option>Bracelet</option><option>Necklace</option><option>Earrings</option><option>Pendant</option><option>Bangle</option><option>Anklet</option></select></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Category *</label><select class="form-control" style="font-size:13px;" onchange="recalcItem(this)"><option>Ring</option><option>Bracelet</option><option>Necklace</option><option>Earrings</option><option>Pendant</option><option>Bangle</option><option>Anklet</option></select></div>
           <div class="form-group" style="margin-bottom:0;"><label>Style / Type</label><input type="text" class="form-control" placeholder="e.g. Solitaire, Hoop" style="font-size:13px;"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Item Name *</label><input type="text" class="form-control" placeholder="Full name" style="font-size:13px;"></div>
-          <div class="form-group" style="margin-bottom:0;"><label>Karat *</label><select class="form-control" style="font-size:13px;"><option>10K</option><option>14K</option><option>18K</option><option>22K</option><option>24K</option><option>925</option><option>Platinum</option></select></div>
-          <div class="form-group" style="margin-bottom:0;"><label>Weight (g)</label><input type="number" class="form-control" placeholder="0.00" step="0.01" style="font-size:13px;"></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Karat *</label><select class="form-control" class="inward-karat" style="font-size:13px;" onchange="recalcItem(this)"><option>10K</option><option selected>14K</option><option>18K</option><option>22K</option><option>24K</option><option>925</option><option>Platinum</option></select></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Weight (g)</label><input type="number" class="form-control inward-weight" placeholder="0.00" step="0.01" style="font-size:13px;" oninput="recalcItem(this)"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Size / Length</label><input type="text" class="form-control" placeholder="e.g. 7, 18in" style="font-size:13px;"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Short Description</label><input type="text" class="form-control" placeholder="Brief note" style="font-size:13px;"></div>
-          <div class="form-group" style="margin-bottom:0;"><label>Unit Cost ($) *</label><input type="number" class="form-control" placeholder="0.00" step="0.01" style="font-size:13px;"></div>
-          <div class="form-group" style="margin-bottom:0;"><label>List Price ($)</label><input type="number" class="form-control" placeholder="0.00" step="0.01" style="font-size:13px;"></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Unit Cost ($) *</label><input type="number" class="form-control inward-cost" placeholder="0.00" step="0.01" style="font-size:13px;" oninput="recalcItem(this)"></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Making Charges % <span style="font-size:10px;color:var(--text3);">(auto)</span></label><input type="number" class="form-control inward-making" placeholder="—" step="0.01" style="font-size:13px;background:var(--beige2);" readonly tabindex="-1"></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Margin % <span style="font-size:10px;color:var(--text3);">(manual)</span></label><input type="number" class="form-control inward-margin" placeholder="0" step="0.01" style="font-size:13px;" oninput="recalcItem(this)" value="0"></div>
+          <div class="form-group" style="margin-bottom:0;"><label>List Price ($) <span style="font-size:10px;color:var(--text3);">(auto)</span></label><input type="number" class="form-control inward-list" placeholder="—" step="0.01" style="font-size:13px;background:var(--beige2);font-weight:600;" readonly tabindex="-1"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Qty</label><input type="number" class="form-control" value="1" min="1" style="font-size:13px;"></div>
         </div>
       </div>
@@ -1074,7 +1240,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
     </div>
     <!-- Column headers -->
-    <div style="display:grid;grid-template-columns:130px 150px 1fr 110px 150px 130px 36px;gap:8px;padding:0 4px;margin-bottom:6px;">
+    <div class="expense-col-headers">
       <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);">Date</span>
       <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);">Category</span>
       <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);">Description *</span>
@@ -1173,7 +1339,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   </div>
 
   <!-- 6 KEY METRICS: Revenue - Gross Profit - Expenses - EBITDA - Invoices - Units -->
-  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;">
+  <div class="dash-grid-6">
     <div class="dash-metric" style="border-top:3px solid var(--gold-mid);">
       <div class="dash-metric-label">Revenue</div>
       <div class="dash-metric-value" style="color:var(--success);">$48,320</div>
@@ -1254,7 +1420,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <!-- Aged Inventory -->
   <div class="card">
     <div class="card-title">Aged Inventory</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+    <div class="dash-grid-4">
       <div class="dash-metric"><div class="dash-metric-label">0–30 days</div><div class="dash-metric-value" style="color:var(--success);">142</div><div class="dash-metric-sub" style="color:var(--success);">Fresh stock</div></div>
       <div class="dash-metric"><div class="dash-metric-label">31–60 days</div><div class="dash-metric-value">62</div><div class="dash-metric-sub">Moving normally</div></div>
       <div class="dash-metric"><div class="dash-metric-label">61–90 days</div><div class="dash-metric-value" style="color:var(--warning);">20</div><div class="dash-metric-sub" style="color:var(--warning);">Review pricing</div></div>
@@ -1274,7 +1440,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
   <!-- Company Details -->
   <div id="sub-company" class="sub-pane active">
-    <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;">
+    <div class="admin-two-col">
       <div class="card">
         <div class="card-title">Company Information</div>
         <div class="alert alert-info">ℹ These details appear on all printed invoices.</div>
@@ -1411,7 +1577,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <!-- Karat Pricing -->
   <div id="sub-karat" class="sub-pane">
     <div class="alert alert-warning" style="margin-bottom:14px;">⚠ Updating karat prices recalculates the <strong>List price</strong> basis for ALL unsold inventory. Changes are logged.</div>
-    <div style="display:grid;grid-template-columns:480px 1fr;gap:20px;">
+    <div class="admin-karat-grid">
       <div class="card">
         <div class="card-title">Price per Gram</div>
         <div class="table-wrap" style="margin-bottom:14px;"><table><thead><tr><th>Karat</th><th>$/Gram</th><th>Updated</th><th></th></tr></thead><tbody>
@@ -1440,7 +1606,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="card" style="margin-bottom:16px;">
       <div class="card-title">Add New User</div>
       <div class="alert alert-info">Only MasterAdmin and Admin-role users can create accounts and update passwords.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 140px 1fr auto;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+      <div class="new-user-grid">
         <div class="form-group" style="margin-bottom:0;"><label>Full Name *</label><input type="text" class="form-control" id="newUserName" placeholder="First Last"></div>
         <div class="form-group" style="margin-bottom:0;"><label>Email / Username *</label><input type="email" class="form-control" id="newUserEmail" placeholder="user@kalujewelry.com"></div>
         <div class="form-group" style="margin-bottom:0;"><label>Role *</label><select class="form-control" id="newUserRole"><option>Admin</option><option>Sales</option><option>Inventory</option></select></div>
@@ -1454,24 +1620,24 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div style="display:flex;flex-direction:column;gap:10px;" id="usersList">
           <div style="padding:12px;background:var(--gold-pale);border-radius:8px;border:1px solid var(--gold-light);">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--gold-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold-pale);">MA</div><div><div style="font-weight:600;">MasterAdmin</div><div style="font-size:12px;color:var(--text2);">masteradmin@kalujewelry.com</div><div style="font-size:11px;color:var(--gold-dark);">Full system access &middot; Cannot be removed</div></div></div>
+              <div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--gold-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold-pale);">MA</div><div><div style="font-weight:600;">MasterAdmin</div><div style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b6dbd7c5c2d3c4d7d2dbdfd8f6ddd7dac3dcd3c1d3dac4cf98d5d9db">[email&#160;protected]</a></div><div style="font-size:11px;color:var(--gold-dark);">Full system access &middot; Cannot be removed</div></div></div>
               <span class="badge" style="background:var(--gold-dark);color:var(--gold-pale);">MasterAdmin</span>
             </div>
           </div>
           <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);" id="user-SA">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--gold-mid);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--gold-dark);">SA</div><div><div style="font-weight:600;">Sarah A.</div><div style="font-size:12px;color:var(--text2);">sarah@kalujewelry.com</div></div></div><div style="display:flex;align-items:center;gap:6px;"><select class="form-control" style="width:110px;padding:4px 8px;font-size:12px;"><option selected>Admin</option><option>Sales</option><option>Inventory</option></select><button class="btn btn-danger btn-sm btn-icon" onclick="removeUser('user-SA','Sarah A.')">&#x2715;</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--gold-mid);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--gold-dark);">SA</div><div><div style="font-weight:600;">Sarah A.</div><div style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d0a3b1a2b1b890bbb1bca5bab5a7b5bca2a9feb3bfbd">[email&#160;protected]</a></div></div></div><div style="display:flex;align-items:center;gap:6px;"><select class="form-control" style="width:110px;padding:4px 8px;font-size:12px;"><option selected>Admin</option><option>Sales</option><option>Inventory</option></select><button class="btn btn-danger btn-sm btn-icon" onclick="removeUser('user-SA','Sarah A.')">&#x2715;</button></div></div>
             <div style="display:flex;gap:8px;align-items:center;"><div style="position:relative;flex:1;"><input type="password" class="form-control" placeholder="New password" style="padding:6px 36px 6px 10px;font-size:12px;" id="pwd-SA"><span onclick="togglePwdVis('pwd-SA',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">&#128065;</span></div><button class="btn btn-outline btn-sm" onclick="updatePassword('pwd-SA','Sarah A.')">Update Password</button></div>
           </div>
           <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);" id="user-MR">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--beige3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);">MR</div><div><div style="font-weight:600;">Mike R.</div><div style="font-size:12px;color:var(--text2);">mike@kalujewelry.com</div></div></div><div style="display:flex;align-items:center;gap:6px;"><select class="form-control" style="width:110px;padding:4px 8px;font-size:12px;"><option>Admin</option><option selected>Sales</option><option>Inventory</option></select><button class="btn btn-danger btn-sm btn-icon" onclick="removeUser('user-MR','Mike R.')">&#x2715;</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--beige3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);">MR</div><div><div style="font-weight:600;">Mike R.</div><div style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b2dfdbd9d7f2d9d3dec7d8d7c5d7dec0cb9cd1dddf">[email&#160;protected]</a></div></div></div><div style="display:flex;align-items:center;gap:6px;"><select class="form-control" style="width:110px;padding:4px 8px;font-size:12px;"><option>Admin</option><option selected>Sales</option><option>Inventory</option></select><button class="btn btn-danger btn-sm btn-icon" onclick="removeUser('user-MR','Mike R.')">&#x2715;</button></div></div>
             <div style="display:flex;gap:8px;align-items:center;"><div style="position:relative;flex:1;"><input type="password" class="form-control" placeholder="New password" style="padding:6px 36px 6px 10px;font-size:12px;" id="pwd-MR"><span onclick="togglePwdVis('pwd-MR',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">&#128065;</span></div><button class="btn btn-outline btn-sm" onclick="updatePassword('pwd-MR','Mike R.')">Update Password</button></div>
           </div>
           <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);" id="user-PK">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--beige3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);">PK</div><div><div style="font-weight:600;">Priya K.</div><div style="font-size:12px;color:var(--text2);">priya@kalujewelry.com</div></div></div><div style="display:flex;align-items:center;gap:6px;"><select class="form-control" style="width:110px;padding:4px 8px;font-size:12px;"><option>Admin</option><option selected>Sales</option><option>Inventory</option></select><button class="btn btn-danger btn-sm btn-icon" onclick="removeUser('user-PK','Priya K.')">&#x2715;</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--beige3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);">PK</div><div><div style="font-weight:600;">Priya K.</div><div style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6515170c1c04250e0409100f00120009171c4b060a08">[email&#160;protected]</a></div></div></div><div style="display:flex;align-items:center;gap:6px;"><select class="form-control" style="width:110px;padding:4px 8px;font-size:12px;"><option>Admin</option><option selected>Sales</option><option>Inventory</option></select><button class="btn btn-danger btn-sm btn-icon" onclick="removeUser('user-PK','Priya K.')">&#x2715;</button></div></div>
             <div style="display:flex;gap:8px;align-items:center;"><div style="position:relative;flex:1;"><input type="password" class="form-control" placeholder="New password" style="padding:6px 36px 6px 10px;font-size:12px;" id="pwd-PK"><span onclick="togglePwdVis('pwd-PK',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">&#128065;</span></div><button class="btn btn-outline btn-sm" onclick="updatePassword('pwd-PK','Priya K.')">Update Password</button></div>
           </div>
           <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);" id="user-JT">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--beige3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);">JT</div><div><div style="font-weight:600;">James T.</div><div style="font-size:12px;color:var(--text2);">james@kalujewelry.com</div></div></div><div style="display:flex;align-items:center;gap:6px;"><select class="form-control" style="width:110px;padding:4px 8px;font-size:12px;"><option>Admin</option><option>Sales</option><option selected>Inventory</option></select><button class="btn btn-danger btn-sm btn-icon" onclick="removeUser('user-JT','James T.')">&#x2715;</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--beige3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);">JT</div><div><div style="font-weight:600;">James T.</div><div style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d3b9b2beb6a093b8b2bfa6b9b6a4b6bfa1aafdb0bcbe">[email&#160;protected]</a></div></div></div><div style="display:flex;align-items:center;gap:6px;"><select class="form-control" style="width:110px;padding:4px 8px;font-size:12px;"><option>Admin</option><option>Sales</option><option selected>Inventory</option></select><button class="btn btn-danger btn-sm btn-icon" onclick="removeUser('user-JT','James T.')">&#x2715;</button></div></div>
             <div style="display:flex;gap:8px;align-items:center;"><div style="position:relative;flex:1;"><input type="password" class="form-control" placeholder="New password" style="padding:6px 36px 6px 10px;font-size:12px;" id="pwd-JT"><span onclick="togglePwdVis('pwd-JT',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">&#128065;</span></div><button class="btn btn-outline btn-sm" onclick="updatePassword('pwd-JT','James T.')">Update Password</button></div>
           </div>
         </div>
@@ -1576,6 +1742,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <div style="font-size:26px;font-weight:700;color:#2C2416;letter-spacing:1px;">INVOICE</div>
             <div style="font-size:14px;color:#7A5900;font-weight:600;margin-top:3px;" id="inv-num">INV-2025-0047</div>
             <div style="font-size:12px;color:#6B5B3E;margin-top:4px;" id="inv-date-display">Date: —</div>
+            <div style="font-size:12px;color:#6B5B3E;" id="inv-time-display">Time: —</div>
             <div style="font-size:12px;color:#6B5B3E;" id="inv-sp-display">Sales: —</div>
           </div>
         </div>
@@ -1652,7 +1819,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <!-- Toast -->
 <div id="toast">Done</div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ===== DATA =====
 const lineItemData = {};
 let liCounter = 2;
@@ -1843,11 +2010,14 @@ function openPrintPreview() {
   const notes = document.getElementById('invNotes') ? document.getElementById('invNotes').value : '';
 
   const dateFormatted = dateVal ? new Date(dateVal + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+  const now = new Date();
+  const timeFormatted = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true});
 
   document.getElementById('inv-cust-name').textContent = name;
   document.getElementById('inv-cust-addr').textContent = addr;
   document.getElementById('inv-cust-phone').textContent = phone;
   document.getElementById('inv-date-display').textContent = 'Date: ' + dateFormatted;
+  document.getElementById('inv-time-display').textContent = 'Time: ' + timeFormatted;
   document.getElementById('inv-sp-display').textContent = 'Sales: ' + sp;
   document.getElementById('inv-footer-text').textContent = companyData.footer;
   document.getElementById('inv-co-name').textContent = companyData.name;
@@ -1968,15 +2138,17 @@ function addManualInwardRow() {
     <button class="btn btn-danger btn-icon btn-sm" onclick="removeInwardRow('${id}')">✕ Remove</button>
   </div>
   <div class="inward-grid">
-    <div class="form-group" style="margin-bottom:0;"><label>Category *</label><select class="form-control" style="font-size:13px;"><option>Ring</option><option>Bracelet</option><option>Necklace</option><option>Earrings</option><option>Pendant</option><option>Bangle</option><option>Anklet</option></select></div>
+    <div class="form-group" style="margin-bottom:0;"><label>Category *</label><select class="form-control" style="font-size:13px;" onchange="recalcItem(this)"><option>Ring</option><option>Bracelet</option><option>Necklace</option><option>Earrings</option><option>Pendant</option><option>Bangle</option><option>Anklet</option></select></div>
     <div class="form-group" style="margin-bottom:0;"><label>Style / Type</label><input type="text" class="form-control" placeholder="e.g. Solitaire" style="font-size:13px;"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Item Name *</label><input type="text" class="form-control" placeholder="Full name" style="font-size:13px;"></div>
-    <div class="form-group" style="margin-bottom:0;"><label>Karat *</label><select class="form-control" style="font-size:13px;"><option>10K</option><option>14K</option><option>18K</option><option>22K</option><option>24K</option><option>925</option><option>Platinum</option></select></div>
-    <div class="form-group" style="margin-bottom:0;"><label>Weight (g)</label><input type="number" class="form-control" placeholder="0.00" step="0.01" style="font-size:13px;"></div>
+    <div class="form-group" style="margin-bottom:0;"><label>Karat *</label><select class="form-control inward-karat" style="font-size:13px;" onchange="recalcItem(this)"><option>10K</option><option selected>14K</option><option>18K</option><option>22K</option><option>24K</option><option>925</option><option>Platinum</option></select></div>
+    <div class="form-group" style="margin-bottom:0;"><label>Weight (g)</label><input type="number" class="form-control inward-weight" placeholder="0.00" step="0.01" style="font-size:13px;" oninput="recalcItem(this)"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Size / Length</label><input type="text" class="form-control" placeholder="e.g. 7, 18in" style="font-size:13px;"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Short Description</label><input type="text" class="form-control" placeholder="Brief note" style="font-size:13px;"></div>
-    <div class="form-group" style="margin-bottom:0;"><label>Unit Cost ($) *</label><input type="number" class="form-control" placeholder="0.00" step="0.01" style="font-size:13px;"></div>
-    <div class="form-group" style="margin-bottom:0;"><label>List Price ($)</label><input type="number" class="form-control" placeholder="0.00" step="0.01" style="font-size:13px;"></div>
+    <div class="form-group" style="margin-bottom:0;"><label>Unit Cost ($) *</label><input type="number" class="form-control inward-cost" placeholder="0.00" step="0.01" style="font-size:13px;" oninput="recalcItem(this)"></div>
+    <div class="form-group" style="margin-bottom:0;"><label>Making Charges % <span style="font-size:10px;color:var(--text3);">(auto)</span></label><input type="number" class="form-control inward-making" placeholder="—" step="0.01" style="font-size:13px;background:var(--beige2);" readonly tabindex="-1"></div>
+    <div class="form-group" style="margin-bottom:0;"><label>Margin % <span style="font-size:10px;color:var(--text3);">(manual)</span></label><input type="number" class="form-control inward-margin" placeholder="0" step="0.01" value="0" style="font-size:13px;" oninput="recalcItem(this)"></div>
+    <div class="form-group" style="margin-bottom:0;"><label>List Price ($) <span style="font-size:10px;color:var(--text3);">(auto)</span></label><input type="number" class="form-control inward-list" placeholder="—" step="0.01" style="font-size:13px;background:var(--beige2);font-weight:600;" readonly tabindex="-1"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Qty</label><input type="number" class="form-control" value="1" min="1" style="font-size:13px;"></div>
   </div>`;
   container.appendChild(div);
@@ -2006,18 +2178,154 @@ function confirmManualInwardInline() {
   showToast('✓ Items saved to inventory · Vendor: ' + vendor + ' · Inv#: ' + invNum);
 }
 
+// ===== STOCK INWARD PRICING CALCULATIONS =====
+// Gold rates keyed by karat label
+function getInwardRate(karatLabel) {
+  const map = {
+    '10K': document.getElementById('inwardRate10K'),
+    '14K': document.getElementById('inwardRate14K'),
+    '18K': document.getElementById('inwardRate18K'),
+    '925': document.getElementById('inwardRate925')
+  };
+  const el = map[karatLabel];
+  return el ? parseFloat(el.value) || 0 : 0;
+}
+
+function recalcItem(triggerEl) {
+  // Walk up to the nearest .inward-item container
+  const item = triggerEl.closest('.inward-item');
+  if (!item) return;
+
+  const karatEl  = item.querySelector('.inward-karat, select[onchange*="recalcItem"]');
+  const weightEl = item.querySelector('.inward-weight');
+  const costEl   = item.querySelector('.inward-cost');
+  const makingEl = item.querySelector('.inward-making');
+  const marginEl = item.querySelector('.inward-margin');
+  const listEl   = item.querySelector('.inward-list');
+
+  if (!karatEl || !weightEl || !costEl || !makingEl || !marginEl || !listEl) return;
+
+  const karat    = karatEl.value;
+  const weight   = parseFloat(weightEl.value) || 0;
+  const cost     = parseFloat(costEl.value) || 0;
+  const margin   = parseFloat(marginEl.value) || 0;
+  const goldRate = getInwardRate(karat);  // $/g on inward day
+
+  // Making charges % = (Cost - Weight × GoldRate) / (Weight × GoldRate) × 100
+  let makingPct = 0;
+  if (goldRate > 0 && weight > 0) {
+    const metalValue = weight * goldRate;
+    makingPct = metalValue > 0 ? ((cost - metalValue) / metalValue) * 100 : 0;
+    makingEl.value = makingPct.toFixed(2);
+  } else {
+    makingEl.value = '';
+  }
+
+  // List Price = Weight × CurrentGoldRate × (1 + Making%/100) × (1 + Margin%/100)
+  // Use inward day rate as current rate proxy — in production this pulls from karat pricing admin
+  const currentRate = goldRate > 0 ? goldRate : 0;
+  if (currentRate > 0 && weight > 0) {
+    const listPrice = weight * currentRate * (1 + makingPct / 100) * (1 + margin / 100);
+    listEl.value = listPrice.toFixed(2);
+  } else {
+    listEl.value = '';
+  }
+}
+
+function recalcAllItems() {
+  // Re-run recalc on all inward items when gold rates change
+  document.querySelectorAll('.inward-item').forEach(item => {
+    const trigger = item.querySelector('.inward-cost');
+    if (trigger) recalcItem(trigger);
+  });
+}
+
 // ===== CUSTOMERS TAB =====
 let clientIdCounter = 48;
+
+// Sample client data for duplicate detection
+const existingClients = [
+  { id:'KLU-0001', first:'Clifford', last:'B', phone:'+1 (212) 555-0198', email:'clifford@email.com' },
+  { id:'KLU-0002', first:'Anjali',   last:'S', phone:'+1 (310) 555-0241', email:'anjali@email.com' },
+  { id:'KLU-0003', first:'Robert',   last:'M', phone:'+1 (415) 555-0089', email:'robert@email.com' },
+  { id:'KLU-0004', first:'Sunita',   last:'P', phone:'+1 (213) 555-0312', email:'sunita@email.com' },
+  { id:'KLU-0005', first:'David',    last:'L', phone:'+1 (323) 555-0174', email:'david@email.com' }
+];
+
+function strSimilarity(a, b) {
+  if (!a || !b) return 0;
+  a = a.toLowerCase().replace(/\s+/g,'');
+  b = b.toLowerCase().replace(/\s+/g,'');
+  if (a === b) return 1;
+  if (a.includes(b) || b.includes(a)) return 0.85;
+  let matches = 0;
+  const shorter = a.length < b.length ? a : b;
+  const longer  = a.length < b.length ? b : a;
+  for (let i = 0; i < shorter.length; i++) {
+    if (longer.includes(shorter[i])) matches++;
+  }
+  return matches / longer.length;
+}
+
+function checkDuplicateClient() {
+  const first = (document.getElementById('newClientFirst').value || '').trim();
+  const last  = (document.getElementById('newClientLast').value  || '').trim();
+  const phone = (document.getElementById('newClientPhone').value || '').trim();
+  const email = (document.getElementById('newClientEmail').value || '').trim();
+  const alert = document.getElementById('dupAlert');
+  const matchBox = document.getElementById('dupMatches');
+
+  if (!first && !phone && !email) { alert.style.display='none'; return; }
+
+  const scored = existingClients.map(c => {
+    // Score: phone first (highest weight), then email, then name
+    const phoneScore = phone ? strSimilarity(phone, c.phone) * 3 : 0;
+    const emailScore = email ? strSimilarity(email, c.email) * 2 : 0;
+    const nameScore  = (first || last) ? strSimilarity(first + last, c.first + c.last) : 0;
+    const total = phoneScore + emailScore + nameScore;
+    const max   = (phone ? 3 : 0) + (email ? 2 : 0) + (first||last ? 1 : 0) || 1;
+    return { client: c, pct: total / max };
+  }).filter(s => s.pct >= 0.75).sort((a,b) => b.pct - a.pct);
+
+  if (scored.length === 0) { alert.style.display='none'; return; }
+
+  matchBox.innerHTML = scored.map(s => {
+    const pct = Math.round(s.pct * 100);
+    const c = s.client;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);">
+      <div><strong>${c.first} ${c.last}</strong> <code style="font-size:11px;margin-left:6px;">${c.id}</code>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px;">${c.phone} &middot; ${c.email}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="badge" style="background:var(--warning-bg);color:var(--warning);">${pct}% match</span>
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('dupAlert').style.display='none';showToast('Using existing client ${c.id}')">Use This Client</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  alert.style.display = 'block';
+}
+
 function saveNewClient() {
-  const name = document.getElementById('newClientName').value;
-  if (!name) { showToast('⚠ Enter client name'); return; }
+  const first  = document.getElementById('newClientFirst').value.trim();
+  const last   = document.getElementById('newClientLast').value.trim();
+  const source = document.getElementById('newClientSource').value;
+  if (!first)  { showToast('⚠ First name is required'); return; }
+  if (!last)   { showToast('⚠ Last name is required');  return; }
+  if (!source) { showToast('⚠ Lead Source is required'); return; }
   clientIdCounter++;
   const id = 'KLU-00' + clientIdCounter;
-  showToast('✓ Client saved · ID: ' + id);
-  document.getElementById('newClientName').value = '';
-  document.getElementById('newClientPhone').value = '';
-  document.getElementById('newClientEmail').value = '';
-  document.getElementById('newClientAddr').value = '';
+  existingClients.push({
+    id, first, last,
+    phone: document.getElementById('newClientPhone').value,
+    email: document.getElementById('newClientEmail').value
+  });
+  showToast('✓ Client saved · ID: ' + id + ' · ' + first + ' ' + last);
+  ['newClientFirst','newClientLast','newClientPhone','newClientEmail','newClientAddr'].forEach(f => {
+    const el = document.getElementById(f); if (el) el.value = '';
+  });
+  document.getElementById('newClientSource').value = '';
+  document.getElementById('dupAlert').style.display = 'none';
   toggleCollapse('newclient');
 }
 
