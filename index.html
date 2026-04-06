@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kalü Jewelry — Management System v17</title>
+<title>Kalü Jewelry — Management System v18</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -1531,6 +1531,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div class="form-group" style="margin-bottom:0;"><label>Email / Username *</label><input type="email" class="form-control" id="newUserEmail" placeholder="user@kalujewelry.com"></div>
         <div class="form-group" style="margin-bottom:0;"><label>Role *</label><select class="form-control" id="newUserRole"><option>Sales</option><option>Merchandising</option><option>Management</option></select></div>
         <div class="form-group" style="margin-bottom:0;"><label>Temporary Password *</label><div style="position:relative;"><input type="password" class="form-control" id="newUserPass" placeholder="Min 8 characters" style="padding-right:36px;"><span onclick="togglePwdVis('newUserPass',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">&#128065;</span></div></div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;">
+            <input type="checkbox" id="newUserSandbox" style="width:15px;height:15px;accent-color:var(--gold-dark);">
+            Sandbox / Test account
+          </label>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px;">Sandbox users only see test data, never live data.</div>
+        </div>
         <button class="btn btn-gold" onclick="addNewUser()" style="white-space:nowrap;">+ Add User</button>
       </div>
     </div>
@@ -4253,10 +4260,11 @@ function renderFirestoreUsersList() {
 }
 
 async function addNewUser() {
-  const name  = document.getElementById('newUserName').value.trim();
-  const email = document.getElementById('newUserEmail').value.trim();
-  const role  = document.getElementById('newUserRole').value;
-  const pass  = document.getElementById('newUserPass').value;
+  const name    = document.getElementById('newUserName').value.trim();
+  const email   = document.getElementById('newUserEmail').value.trim();
+  const role    = document.getElementById('newUserRole').value;
+  const pass    = document.getElementById('newUserPass').value;
+  const sandbox = document.getElementById('newUserSandbox')?.checked || false;
   if (!name || !email || !pass) { showToast('Fill in all required fields'); return; }
   if (pass.length < 8) { showToast('Password must be at least 8 characters'); return; }
   try {
@@ -4265,7 +4273,7 @@ async function addNewUser() {
     const fbUser = await window.DB.authCreateUser(email, pass);
     // Save profile to Firestore (no password stored)
     const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9.]/g,'');
-    const profile = { username, name, email, role, sandbox: false, createdBy: currentUser?.name||'' };
+    const profile = { username, name, email, role, sandbox, createdBy: currentUser?.name||'' };
     await window.DB.saveUserProfile(fbUser.uid, profile);
     audit('User Created', name + ' · ' + role + ' · ' + email);
     // Update local cache
@@ -4276,6 +4284,7 @@ async function addNewUser() {
     document.getElementById('newUserName').value='';
     document.getElementById('newUserEmail').value='';
     document.getElementById('newUserPass').value='';
+    if (document.getElementById('newUserSandbox')) document.getElementById('newUserSandbox').checked = false;
     showToast('✓ User ' + name + ' created (' + role + ')');
   } catch(e) {
     if (e.code === 'auth/email-already-in-use') showToast('⚠ That email is already registered');
