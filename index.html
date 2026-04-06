@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kalü Jewelry — Management System v19</title>
+<title>Kalü Jewelry — Management System v20</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -691,7 +691,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div class="form-group"><label>Notes / Preferences</label><input type="text" class="form-control" id="newClientNotes" placeholder="e.g. prefers 14K, size 6 ring"></div>
         <div class="form-group"><label>Assigned Sales Person</label>
           <select class="form-control" id="newClientSales">
-            <option>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option>
+            <option value="">— Select —</option>
           </select>
         </div>
       </div>
@@ -820,7 +820,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <!-- INVOICE META ROW -->
       <div class="grid-3" style="margin-bottom:0;">
         <div class="form-group"><label>Invoice Date <span style="font-size:10px;color:var(--text3);font-weight:400;">(auto — today)</span></label><input type="date" class="form-control" id="invDate" readonly style="background:var(--beige2);cursor:not-allowed;" title="Date is set automatically to today"></div>
-        <div class="form-group"><label>Sales Person</label><select class="form-control" id="salesPerson"><option>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option></select></div>
+        <div class="form-group"><label>Sales Person</label><select class="form-control" id="salesPerson" id="invSalesSelect"><option value="">— Select —</option></select></div>
         <div class="form-group"><label>Billing Source *</label>
           <input type="hidden" id="selectedClientId" value="">
           <select class="form-control" id="billingSource">
@@ -844,7 +844,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);">Qty</span>
         <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);">List Price</span>
         <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);">Disc%</span>
-        <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);">Sell Price</span>
+        <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);">Sell Price ✎</span>
         <span></span>
       </div>
       <div id="lineItemsContainer">
@@ -894,7 +894,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
               <option value="bank">Bank Transfer</option>
               <option value="other">Other</option>
             </select>
-            <input type="number" class="form-control" placeholder="Amount $" style="padding:8px 10px;" onchange="calcTotal()">
+            <input type="number" class="form-control" placeholder="Amount $" style="padding:8px 10px;" onchange="capPaymentAmount(this);calcTotal()">
             <button class="btn btn-danger btn-icon" onclick="removePayRow('pay-1')">✕</button>
           </div>
         </div>
@@ -909,13 +909,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <div class="grid-2">
         <div class="form-group"><label>Notes</label><textarea class="form-control" rows="2" id="invNotes" placeholder="Special notes for this invoice..."></textarea></div>
         <div>
-          <label style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">ID Document (optional)</label>
-          <div class="upload-zone" style="padding:14px;" onclick="document.getElementById('idDocInput').click()">
-            <div style="font-size:20px;margin-bottom:4px;">🪪</div>
-            <div style="font-size:12px;color:var(--text2);">Attach ID — JPG, PNG, PDF</div>
+          <label style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">ID Document <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('idDocInput').click()" style="white-space:nowrap;">🪪 Attach ID</button>
+            <div id="idDocName" style="font-size:12px;color:var(--success);"></div>
           </div>
           <input type="file" id="idDocInput" accept="image/*,.pdf" onchange="handleIdDoc(this)">
-          <div id="idDocName" style="margin-top:6px;font-size:12px;color:var(--success);"></div>
         </div>
       </div>
 
@@ -947,7 +946,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
           <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text3);">🔍</span>
         </div>
         <select class="form-control" style="width:140px;"><option>All Time</option><option>This Month</option><option>Last Month</option><option>This Year</option></select>
-        <select class="form-control" style="width:130px;"><option>All Sales</option><option>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option></select>
+        <select class="form-control" style="width:130px;" id="invHistorySalesFilter"><option value="">All Sales</option></select>
         <button class="btn btn-outline btn-sm" onclick="exportInvoices()">↓ Export CSV</button>
       </div>
       <div class="table-wrap">
@@ -1206,7 +1205,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <select class="form-control" style="padding:7px 8px;font-size:13px;"><option>Office Supplies</option><option>Packaging</option><option>Travel</option><option>Marketing</option><option>Utilities</option><option>Maintenance</option><option>Misc / Petty Cash</option></select>
         <input type="text" class="form-control" placeholder="What was purchased?" style="font-size:13px;">
         <input type="number" class="form-control" placeholder="0.00" step="0.01" style="padding:7px 8px;font-size:13px;">
-        <select class="form-control" style="padding:7px 8px;font-size:13px;"><option>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option><option>Owner</option></select>
+        <select class="form-control" style="padding:7px 8px;font-size:13px;"><option value="">— Select —</option></select>
         <button class="btn btn-outline btn-sm" id="receiptBtn-1" onclick="document.getElementById('receiptFile-1').click()" style="font-size:12px;">📎 Attach</button>
         <input type="file" id="receiptFile-1" style="display:none;" accept="image/*,.pdf" onchange="handleReceiptUpload(this,'exp-r-1','receiptBtn-1')">
         <button class="btn btn-danger btn-icon" onclick="removeExpRow('exp-r-1')">✕</button>
@@ -1425,9 +1424,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             </div>
             <div style="text-align:right;">
               <div style="font-size:18px;font-weight:700;color:var(--text);">INVOICE</div>
-              <div style="font-size:12px;color:var(--gold-dark);font-weight:600;">INV-2025-0047</div>
-              <div style="font-size:11px;color:var(--text2);">Date: Apr 1, 2026</div>
-              <div style="font-size:11px;color:var(--text2);">Sales: Sarah A.</div>
+              <div style="font-size:12px;color:var(--gold-dark);font-weight:600;">INV-XXXX-XXXXX</div>
+              <div style="font-size:11px;color:var(--text2);">Date: Today</div>
+              <div style="font-size:11px;color:var(--text2);">Sales: —</div>
             </div>
           </div>
           <div style="background:var(--beige);padding:8px;border-radius:5px;font-size:11px;color:var(--text2);">Bill To: <strong>Customer Name</strong> · Address · Phone</div>
@@ -1538,6 +1537,23 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
   <!-- Users -->
   <div id="sub-users" class="sub-pane">
+
+    <!-- Discount Password -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Discount Authorization</div>
+      <div class="alert alert-info">ℹ When set, any discount applied in billing requires this password. Leave blank to allow discounts freely.</div>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+        <div class="form-group" style="margin-bottom:0;flex:1;min-width:200px;">
+          <label>Discount Password</label>
+          <div style="position:relative;">
+            <input type="password" class="form-control" id="discountPasswordInput" placeholder="Leave blank to disable">
+            <span onclick="togglePwdVis('discountPasswordInput',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">👁</span>
+          </div>
+        </div>
+        <button class="btn btn-gold" onclick="saveDiscountPassword()">💾 Save</button>
+        <button class="btn btn-outline" onclick="clearDiscountPassword()">✕ Clear / Disable</button>
+      </div>
+    </div>
     <div class="card" style="margin-bottom:16px;">
       <div class="card-title">Add New User</div>
       <div class="alert alert-info">Only MasterAdmin and Admin-role users can create accounts and update passwords.</div>
@@ -1558,7 +1574,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
     <div class="grid-2">
       <div class="card">
-        <div class="card-title">Team Members</div>
+        <div class="card-title">Login Access</div>
         <div style="display:flex;flex-direction:column;gap:10px;" id="usersList">
           <div style="padding:12px;background:var(--gold-pale);border-radius:8px;border:1px solid var(--gold-light);">
             <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -1588,6 +1604,31 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
           </div>
         </div>
         <div id="permEmptyMsg" style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">Select a user above to view and edit their permissions.</div>
+      </div>
+    </div>
+
+    <!-- Sales Team -->
+    <div class="card" style="margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div class="card-title" style="margin-bottom:2px;">Sales Team</div>
+          <div style="font-size:12px;color:var(--text3);">Names shown in invoice Sales Person dropdown and expense team member fields.</div>
+        </div>
+        <button class="btn btn-gold btn-sm" onclick="openAddSalesMember()">+ Add Member</button>
+      </div>
+      <div id="salesTeamList" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="padding:16px;text-align:center;color:var(--text3);font-size:13px;">Loading sales team...</div>
+      </div>
+      <!-- Add member inline form -->
+      <div id="addSalesMemberForm" style="display:none;margin-top:12px;padding:12px;background:var(--beige);border-radius:var(--radius);border:1px solid var(--border);">
+        <div class="grid-2" style="margin-bottom:10px;">
+          <div class="form-group" style="margin-bottom:0;"><label>First Name *</label><input type="text" class="form-control" id="salesMemberFirst" placeholder="First"></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Last Name *</label><input type="text" class="form-control" id="salesMemberLast" placeholder="Last"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-gold btn-sm" onclick="saveSalesMember()">💾 Save</button>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('addSalesMemberForm').style.display='none'">Cancel</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1687,8 +1728,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('clientCardModal')">Cancel</button>
-      <button class="btn btn-gold" onclick="saveClientCard()">💾 Save Changes</button>
+      <button class="btn btn-outline" onclick="closeModal('clientCardModal')">Close</button>
+      <button class="btn btn-gold" id="clientCardSaveBtn" onclick="saveClientCard()" style="display:none;">💾 Save Changes</button>
     </div>
   </div>
 </div>
@@ -1760,9 +1801,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <div class="modal">
     <div class="modal-title" id="historyModalTitle">Item History</div>
     <div class="table-wrap"><table><thead><tr><th>Date</th><th>Event</th><th>Details</th><th>User</th></tr></thead><tbody>
-      <tr><td>Jan 15</td><td><span class="badge badge-green">Stocked In</span></td><td>Qty:1 · Cost:$820 · Raj Gems · Inv# RGC-2025-112</td><td>James T.</td></tr>
-      <tr><td>Jan 15</td><td><span class="badge badge-blue">Priced</span></td><td>List: $1,850</td><td>Sarah A.</td></tr>
-      <tr><td>Jan 15</td><td><span class="badge badge-gray">Karat Rate</span></td><td>14K → $37.10/g applied</td><td>System</td></tr>
+      <tr><td colspan="4" style="text-align:center;color:var(--text3);padding:16px;">History tracked from audit log.</td></tr>
     </tbody></table></div>
     <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('historyModal')">Close</button></div>
   </div>
@@ -2033,11 +2072,17 @@ function calcTotal() {
   document.querySelectorAll('[id^="li-"]').forEach(row => {
     const id = row.id;
     if (!lineItemData[id]) return;
-    const qty = parseInt(row.querySelector('.li-qty').value) || 1;
-    const disc = parseFloat(row.querySelector('.disc-input').value) || 0;
+    const qty = parseInt(row.querySelector('.li-qty')?.value) || 1;
+    const disc = parseFloat(row.querySelector('.li-disc')?.value) || 0;
     const price = lineItemData[id].price;
-    const sell = price * qty * (1 - disc / 100);
-    row.querySelector('.line-sell').textContent = '$' + sell.toFixed(2);
+    const sellInput = row.querySelector('.li-sell');
+    let sell;
+    if (sellInput && sellInput.tagName === 'INPUT') {
+      sell = parseFloat(sellInput.value) || (price * qty * (1 - disc / 100));
+    } else {
+      sell = price * qty * (1 - disc / 100);
+      if (sellInput) sellInput.textContent = '$' + sell.toFixed(2);
+    }
     subtotal += sell;
   });
   const tax = subtotal * 0.095;
@@ -2095,8 +2140,8 @@ function addItemToInvoice(sku, name, price, cost) {
   row.innerHTML = `<div class="li-name"><div style="font-size:13px;font-weight:500;">${name}</div><div style="font-size:10px;color:var(--text3);">SKU: ${sku}</div></div>
     <input type="number" value="1" min="1" class="form-control li-qty" style="padding:5px 7px;font-size:12px;" onchange="calcTotal()">
     <div style="font-size:13px;color:var(--text2);" class="li-list">$${parseFloat(price).toFixed(2)}</div>
-    <input type="number" value="0" min="0" max="100" class="form-control li-disc" style="padding:5px 7px;font-size:12px;" onchange="calcTotal()">
-    <div class="li-sell line-sell" style="font-size:13px;font-weight:600;color:var(--gold-dark);">$${parseFloat(price).toFixed(2)}</div>
+    <input type="number" value="0" min="0" max="100" class="form-control li-disc" style="padding:5px 7px;font-size:12px;" onchange="applyDiscountWithAuth(this,'${id}')">
+    <input type="number" value="${parseFloat(price).toFixed(2)}" min="0" class="form-control li-sell line-sell" style="padding:5px 7px;font-size:12px;font-weight:600;color:var(--gold-dark);" onchange="onSellPriceEdit(this,'${id}')">
     <button class="btn btn-danger btn-icon" onclick="removeLineItem('${id}')">✕</button>`;
   container.appendChild(row);
   closeModal('itemSearchModal');
@@ -2137,7 +2182,7 @@ function addPayRow() {
       <option value="finance">Financing</option>
       <option value="other">Other</option>
     </select>
-    <input type="number" class="form-control" placeholder="Amount $" style="padding:8px 10px;" onchange="calcTotal()">
+    <input type="number" class="form-control" placeholder="Amount $" style="padding:8px 10px;" onchange="capPaymentAmount(this);calcTotal()">
     <button class="btn btn-danger btn-icon" onclick="removePayRow('${id}')">✕</button>`;
   container.appendChild(row);
 }
@@ -2207,6 +2252,17 @@ async function saveInvoice() {
     }
     showToast('✓ Invoice ' + invNum + ' saved');
     await loadAllData();
+    // Clear the invoice form
+    clearInvoice();
+    // Reset line items
+    document.getElementById('lineItemsContainer').innerHTML = '';
+    const empty = document.getElementById('lineItemsEmpty');
+    if (empty) empty.style.display = '';
+    liCounter = 0;
+    document.getElementById('invoiceNumBadge').textContent = 'Draft';
+    // Open history to show new invoice
+    const histBody = document.getElementById('body-invhistory');
+    if (histBody && !histBody.classList.contains('open')) toggleCollapse('invhistory');
     openPrintPreview();
   } catch(e) { showToast('⚠ ' + e.message); console.error(e); }
 }
@@ -2552,14 +2608,8 @@ let clientIdCounter = 48;
 let extraContactCount = 0;
 let currentViewClientId = null;
 
-// Sample client data for duplicate detection
-const existingClients = [
-  { id:'KLU-0001', first:'Clifford', last:'B',  phone:'2125550198', email:'clifford@email.com',  invoices:8,  units:14, spend:24800, tier:'Platinum', source:'Walk-in',  sales:'Sarah A.' },
-  { id:'KLU-0002', first:'Anjali',   last:'S',  phone:'3105550241', email:'anjali@email.com',    invoices:4,  units:6,  spend:9400,  tier:'Gold',     source:'Instagram', sales:'Mike R.' },
-  { id:'KLU-0003', first:'Robert',   last:'M',  phone:'4155550089', email:'robert@email.com',    invoices:3,  units:5,  spend:6200,  tier:'Gold',     source:'Google',    sales:'Sarah A.' },
-  { id:'KLU-0004', first:'Sunita',   last:'P',  phone:'2135550312', email:'sunita@email.com',    invoices:2,  units:3,  spend:2800,  tier:'Silver',   source:'Events',    sales:'Priya K.' },
-  { id:'KLU-0005', first:'David',    last:'L',  phone:'3235550174', email:'david@email.com',     invoices:2,  units:4,  spend:3100,  tier:'Silver',   source:'Facebook',  sales:'James T.' }
-];
+// existingClients is now dynamic — uses _customers loaded from Firebase
+const existingClients = [];
 
 function normalizePhone(raw) {
   // Strip all non-digit characters
@@ -2600,7 +2650,7 @@ function checkDuplicateClient() {
 
   if (!first && !phone && !emailLoc) { alertEl.style.display='none'; return; }
 
-  const scored = existingClients.map(c => {
+  const scored = _customers.map(c => {
     // Phone: 90% threshold, strip special chars
     const phoneSim = phone && c.phone ? strSimilarity(phone, c.phone) : 0;
     const phonePasses = phoneSim >= 0.9;
@@ -2701,6 +2751,7 @@ async function saveNewClient() {
     document.getElementById('dupAlert').style.display = 'none';
     if (document.getElementById('extraContactsContainer')) document.getElementById('extraContactsContainer').innerHTML = '';
     toggleCollapse('newclient');
+    toggleCollapse('clientsearch'); // open search to show new entry
     await loadCustomers();
   } catch(e) { showToast('⚠ ' + e.message); console.error(e); }
 }
@@ -2708,7 +2759,7 @@ async function saveNewClient() {
 // ===== CLIENT CARD =====
 function viewClient(id) {
   currentViewClientId = id;
-  const c = _customers.find(x => x.id === id) || existingClients.find(x => x.id === id);
+  const c = _customers.find(x => x.id === id);
   if (!c) { showToast('Client not found'); return; }
   document.getElementById('ccName').textContent   = (c.first||'') + ' ' + (c.last||'');
   document.getElementById('ccId').textContent     = c.id;
@@ -2716,15 +2767,24 @@ function viewClient(id) {
   document.getElementById('ccLast').value         = c.last || '';
   document.getElementById('ccPhone').value        = c.phone || '';
   document.getElementById('ccEmail').value        = c.email || '';
-  document.getElementById('ccSource').value       = c.source || 'Walk-in';
-  document.getElementById('ccSales').value        = c.sales  || 'Sarah A.';
+  document.getElementById('ccSource').value       = c.source || '';
+  document.getElementById('ccSales').value        = c.sales  || '';
   document.getElementById('ccNotes').value        = c.notes  || '';
-  document.getElementById('ccInvoices').textContent = c.invoiceCount || c.invoices || 0;
+  document.getElementById('ccInvoices').textContent = c.invoiceCount || 0;
   document.getElementById('ccUnits').textContent    = c.units || 0;
-  document.getElementById('ccSpend').textContent    = '$' + ((c.totalSpend||c.spend)||0).toLocaleString();
+  document.getElementById('ccSpend').textContent    = '$' + ((c.totalSpend)||0).toLocaleString();
   document.getElementById('ccTierVal').textContent  = c.tier || 'Silver';
   const tierBadge = document.getElementById('ccTier');
   if (tierBadge) { tierBadge.textContent = c.tier||'Silver'; tierBadge.style.background = c.tier==='Platinum'?'#E8E0F0':c.tier==='Gold'?'var(--gold-pale)':'var(--beige3)'; tierBadge.style.color = c.tier==='Platinum'?'#5A3E8A':c.tier==='Gold'?'var(--gold-dark)':'var(--text2)'; }
+  // Only Management and MasterAdmin can edit client details
+  const canEdit = currentUser && (currentUser.role === 'MasterAdmin' || currentUser.role === 'Management');
+  const saveBtn = document.getElementById('clientCardSaveBtn');
+  if (saveBtn) saveBtn.style.display = canEdit ? '' : 'none';
+  // Make fields readonly for non-managers
+  ['ccFirst','ccLast','ccPhone','ccEmail','ccSource','ccSales','ccNotes'].forEach(fid => {
+    const el = document.getElementById(fid);
+    if (el) { el.readOnly = !canEdit; el.style.background = canEdit ? '' : 'var(--beige2)'; }
+  });
   document.getElementById('clientCardModal').classList.add('open');
 }
 
@@ -2752,7 +2812,7 @@ async function saveClientCard() {
 
 // ===== MERGE =====
 function openMergeModal() {
-  const c = existingClients.find(x => x.id === currentViewClientId);
+  const c = _customers.find(x => x.id === currentViewClientId);
   if (c) document.getElementById('mergeClientA').textContent = c.first + ' ' + c.last + ' · ' + c.id;
   document.getElementById('mergeNameA').textContent = c ? (c.first + ' ' + c.last) : '';
   document.getElementById('mergeCompareSection').style.display = 'none';
@@ -2877,7 +2937,7 @@ function addExpenseRow() {
     <select class="form-control" style="padding:7px 8px;font-size:13px;"><option>Office Supplies</option><option>Packaging</option><option>Travel</option><option>Marketing</option><option>Utilities</option><option>Maintenance</option><option>Misc / Petty Cash</option></select>
     <input type="text" class="form-control" placeholder="What was purchased?" style="font-size:13px;">
     <input type="number" class="form-control" placeholder="0.00" step="0.01" style="padding:7px 8px;font-size:13px;">
-    <select class="form-control" style="padding:7px 8px;font-size:13px;"><option>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option><option>Owner</option></select>
+    <select class="form-control" style="padding:7px 8px;font-size:13px;"><option value="">— Select —</option></select>
     <button class="btn btn-outline btn-sm" style="font-size:12px;">📎 Attach</button>
     <button class="btn btn-danger btn-icon" onclick="removeExpRow('${id}')">✕</button>`;
   container.appendChild(div);
@@ -4155,6 +4215,165 @@ function exportAuditLog() {
   showToast('✓ Audit log downloaded');
 }
 
+// ===== SALES TEAM =====
+let _salesTeam = [];
+
+async function loadSalesTeam() {
+  try {
+    const snap = await window.DB.getSettings();
+    _salesTeam = snap.salesTeam || [];
+  } catch(e) { _salesTeam = []; }
+  renderSalesTeam();
+  populateSalesDropdowns();
+}
+
+function renderSalesTeam() {
+  const el = document.getElementById('salesTeamList');
+  if (!el) return;
+  if (!_salesTeam.length) {
+    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px;">No sales members yet — add one above.</div>';
+    return;
+  }
+  el.innerHTML = _salesTeam.map((m, i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--beige);border-radius:var(--radius);border:1px solid var(--border);">
+      <div style="font-weight:500;">${m.first} ${m.last}</div>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="deleteSalesMember(${i})">✕</button>
+    </div>`).join('');
+}
+
+function openAddSalesMember() {
+  document.getElementById('addSalesMemberForm').style.display = 'block';
+  document.getElementById('salesMemberFirst').focus();
+}
+
+async function saveSalesMember() {
+  const first = document.getElementById('salesMemberFirst').value.trim();
+  const last  = document.getElementById('salesMemberLast').value.trim();
+  if (!first || !last) { showToast('⚠ First and last name required'); return; }
+  _salesTeam.push({ first, last });
+  await window.DB.saveSettings({ salesTeam: _salesTeam });
+  document.getElementById('salesMemberFirst').value = '';
+  document.getElementById('salesMemberLast').value = '';
+  document.getElementById('addSalesMemberForm').style.display = 'none';
+  renderSalesTeam();
+  populateSalesDropdowns();
+  showToast('✓ ' + first + ' ' + last + ' added to sales team');
+}
+
+async function deleteSalesMember(idx) {
+  const m = _salesTeam[idx];
+  if (!confirm('Remove ' + m.first + ' ' + m.last + ' from sales team?')) return;
+  _salesTeam.splice(idx, 1);
+  await window.DB.saveSettings({ salesTeam: _salesTeam });
+  renderSalesTeam();
+  populateSalesDropdowns();
+  showToast('✓ Removed');
+}
+
+function populateSalesDropdowns() {
+  const opts = _salesTeam.map(m => `<option value="${m.first} ${m.last}">${m.first} ${m.last}</option>`).join('');
+  const baseOpts = '<option value="">— Select —</option>' + opts;
+
+  // All sales dropdowns
+  ['newClientSales','salesPerson','ccSales'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { const cur = el.value; el.innerHTML = baseOpts; el.value = cur; }
+  });
+
+  // Invoice history filter
+  const hist = document.getElementById('invHistorySalesFilter');
+  if (hist) hist.innerHTML = '<option value="">All Sales</option>' + opts;
+
+  // Expense member selects — all selects inside .exp-row (2nd select is member)
+  document.querySelectorAll('.exp-row').forEach(row => {
+    const sels = row.querySelectorAll('select');
+    if (sels[1]) {
+      const cur = sels[1].value;
+      sels[1].innerHTML = baseOpts;
+      sels[1].value = cur;
+    }
+  });
+}
+
+// ===== DISCOUNT PASSWORD PROTECTION =====
+let _discountPassword = '';
+
+function applyDiscountWithAuth(inputEl, rowId) {
+  if (!_discountPassword) { calcTotal(); return; } // no password set, allow freely
+  const pwd = prompt('Enter discount authorization password:');
+  if (pwd !== _discountPassword) {
+    showToast('⚠ Incorrect discount password');
+    inputEl.value = 0;
+    calcTotal();
+    return;
+  }
+  calcTotal();
+}
+
+// ===== PAYMENT TOTAL CAP =====
+function capPaymentAmount(input) {
+  const total = parseFloat(document.getElementById('totalAmt')?.textContent?.replace(/[^0-9.]/g,'')) || 0;
+  if (!total) return;
+  const allPayments = [...document.querySelectorAll('[id^="pay-"] input[type=number]')];
+  const otherSum = allPayments
+    .filter(i => i !== input)
+    .reduce((s, i) => s + (parseFloat(i.value)||0), 0);
+  const remaining = total - otherSum;
+  if ((parseFloat(input.value)||0) > remaining) {
+    input.value = remaining.toFixed(2);
+    showToast('⚠ Payment cannot exceed invoice total of $' + total.toFixed(2));
+  }
+}
+
+// ===== SELL PRICE EDIT → AUTO-CALC DISCOUNT =====
+function onSellPriceEdit(input, rowId) {
+  const row = document.getElementById(rowId);
+  if (!row || !lineItemData[rowId]) return;
+  const listPrice = lineItemData[rowId].price;
+  const qty = parseInt(row.querySelector('.li-qty')?.value) || 1;
+
+  // Require discount password if set
+  if (_discountPassword) {
+    const pwd = prompt('Enter discount authorization password:');
+    if (pwd !== _discountPassword) {
+      showToast('⚠ Incorrect discount password');
+      input.value = (listPrice * qty).toFixed(2); // restore original
+      calcTotal();
+      return;
+    }
+  }
+
+  const sellPrice = parseFloat(input.value) || 0;
+  const discPct = listPrice > 0 ? Math.max(0, (1 - sellPrice / (listPrice * qty)) * 100) : 0;
+  const discInput = row.querySelector('.li-disc');
+  if (discInput) discInput.value = discPct.toFixed(1);
+  calcTotal();
+}
+
+async function loadDiscountPassword() {
+  try {
+    const snap = await window.DB.getSettings();
+    _discountPassword = snap.discountPassword || '';
+    if (document.getElementById('discountPasswordInput')) {
+      document.getElementById('discountPasswordInput').value = _discountPassword;
+    }
+  } catch(e) {}
+}
+
+async function saveDiscountPassword() {
+  const pwd = document.getElementById('discountPasswordInput')?.value || '';
+  try {
+    await window.DB.saveSettings({ discountPassword: pwd });
+    _discountPassword = pwd;
+    showToast(pwd ? '✓ Discount password set' : '✓ Discount password cleared');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+async function clearDiscountPassword() {
+  document.getElementById('discountPasswordInput').value = '';
+  await saveDiscountPassword();
+}
+
 // ===== VENDORS =====
 let _vendors = [];
 
@@ -4402,7 +4621,7 @@ async function handleReceiptUpload(input, rowId, btnId) {
       <select class="form-control" style="padding:7px 8px;font-size:13px;"><option>Office Supplies</option><option>Packaging</option><option>Travel</option><option>Marketing</option><option>Utilities</option><option>Maintenance</option><option>Misc / Petty Cash</option></select>
       <input type="text" class="form-control" placeholder="What was purchased?" style="font-size:13px;">
       <input type="number" class="form-control" placeholder="0.00" step="0.01" style="padding:7px 8px;font-size:13px;">
-      <select class="form-control" style="padding:7px 8px;font-size:13px;"><option>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option><option>Owner</option></select>
+      <select class="form-control" style="padding:7px 8px;font-size:13px;"><option value="">— Select —</option></select>
       <button class="btn btn-outline btn-sm" id="${btnId}" onclick="document.getElementById('${fileId}').click()" style="font-size:12px;">📎 Attach</button>
       <input type="file" id="${fileId}" style="display:none;" accept="image/*,.pdf" onchange="handleReceiptUpload(this,'${id}','${btnId}')">
       <button class="btn btn-danger btn-icon" onclick="removeExpRow('${id}')">✕</button>`;
@@ -4448,6 +4667,8 @@ loadAllData = async function() {
   await _origLoadAllData();
   try { await loadVendors(); } catch(e) { console.warn('loadVendors:', e); }
   try { await loadUsers();   } catch(e) { console.warn('loadUsers:', e); }
+  try { await loadSalesTeam(); } catch(e) { console.warn('loadSalesTeam:', e); }
+  try { await loadDiscountPassword(); } catch(e) { console.warn('loadDiscountPassword:', e); }
 };
 
 // Show receipt download link in filtered expense panel
