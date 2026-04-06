@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kalü Jewelry — Management System v18</title>
+<title>Kalü Jewelry — Management System v19</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -402,6 +402,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       authSignOut: async () => {},
       authCreateUser: async () => { throw new Error('Offline mode'); },
       authDeleteUser: async () => {},
+      sendPasswordReset: async () => {},
       getUserProfile: async () => null,
       saveUserProfile: _noopSave,
     };
@@ -437,6 +438,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       authCreateUser: async (email, pass) => {
         const cred = await _auth.createUserWithEmailAndPassword(email, pass);
         return cred.user;
+      },
+      sendPasswordReset: async (email) => {
+        await _auth.sendPasswordResetEmail(email);
       },
       // User profiles stored in Firestore (not passwords — Auth handles those)
       saveUserProfile: async (uid, d) => {
@@ -560,6 +564,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
     </div>
     <button class="btn btn-gold" style="width:100%;padding:11px;font-size:14px;font-weight:600;" onclick="doLogin()">Sign In</button>
+    <div id="forgotSection" style="margin-top:12px;">
+      <button class="btn btn-link" style="width:100%;font-size:12px;color:var(--text3);" onclick="toggleForgotPassword()">Forgot password?</button>
+    </div>
+    <div id="forgotForm" style="display:none;margin-top:10px;padding:12px;background:var(--beige2);border-radius:var(--radius);">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Enter the email address linked to your account. A reset link will be sent there.</div>
+      <input type="email" class="form-control" id="forgotEmail" placeholder="yourname@gmail.com" style="margin-bottom:8px;">
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-gold btn-sm" style="flex:1;" onclick="doForgotPassword()">Send Reset Link</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleForgotPassword()">Cancel</button>
+      </div>
+    </div>
     <div style="margin-top:16px;font-size:11px;color:var(--text3);">Kal&#252; Jewelry &middot; Authorized personnel only</div>
     <div style="margin-top:10px;padding:8px 12px;background:var(--beige2);border-radius:6px;font-size:11px;color:var(--text3);text-align:left;">
       🧪 <strong>Sandbox test:</strong> use your <code>test</code> account credentials.<br>
@@ -2999,6 +3014,7 @@ async function saveCompanyDetails() {
   companyData.ein = document.getElementById('companyEIN').value;
   companyData.sp = document.getElementById('companySP').value;
   companyData.footer = document.getElementById('companyFooter').value;
+  const resetEmail = '';
   document.getElementById('companyNameDisplay').textContent = companyData.name;
   document.getElementById('logoDisplay').textContent = companyData.name.charAt(0);
   try {
@@ -4294,7 +4310,7 @@ async function addNewUser() {
 }
 
 async function deleteFirestoreUser(uid, name) {
-  if (!confirm('Remove user ' + name + '? They will no longer be able to log in.')) return;
+  if (!confirm('Remove ' + name + '? They will lose all access immediately.')) return;
   try {
     await window.DB.deleteUserProfile(uid);
     audit('User Deleted', name);
@@ -4303,6 +4319,42 @@ async function deleteFirestoreUser(uid, name) {
     await refreshPermUserDropdown();
     showToast('✓ ' + name + ' removed');
   } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+function toggleForgotPassword() {
+  const form = document.getElementById('forgotForm');
+  if (!form) return;
+  const isOpen = form.style.display !== 'none';
+  form.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) document.getElementById('forgotEmail')?.focus();
+  document.getElementById('loginErr').style.display = 'none';
+}
+
+async function doForgotPassword() {
+  const email = (document.getElementById('forgotEmail')?.value || '').trim();
+  if (!email) { showLoginMsg('Please enter an email address.', 'error'); return; }
+  const btn = document.querySelector('#forgotForm .btn-gold');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+  try {
+    await window.DB.sendPasswordReset(email);
+    showLoginMsg('✓ Reset link sent to ' + email, 'success');
+    document.getElementById('forgotForm').style.display = 'none';
+    document.getElementById('forgotEmail').value = '';
+  } catch(e) {
+    showLoginMsg('⚠ Could not send reset email. Check the address and try again.', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Send Reset Link'; }
+  }
+}
+
+function showLoginMsg(msg, type) {
+  const err = document.getElementById('loginErr');
+  if (!err) return;
+  err.textContent = msg;
+  err.style.display = 'block';
+  err.style.background = type === 'success' ? 'var(--success-bg)' : 'var(--danger-bg)';
+  err.style.color = type === 'success' ? 'var(--success)' : 'var(--danger)';
+  err.style.border = type === 'success' ? '1px solid #b0d4bc' : '1px solid #e5b8b8';
 }
 
 async function updateFirestorePassword(uid) {
