@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kalü Jewelry — Management System v16</title>
+<title>Kalü Jewelry — Management System v17</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -394,6 +394,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       saveVendor: _noopSave, getVendors: _noop, deleteVendor: _noop,
       saveUser: _noopSave, getUsers: _noop, deleteUser: _noop,
       uploadFile: async () => ({ url:'', path:'', name:'' }), deleteFile: _noop,
+      logAudit: async () => {}, getAuditLog: async () => [],
       saveSettings: _noop, getSettings: async () => ({}),
       clearSandbox: _noop,
       // Auth noops for offline
@@ -450,6 +451,22 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         return s.docs.map(d => ({uid: d.id, ...d.data()}));
       },
       deleteUserProfile: async (uid) => { await _db.collection('userProfiles').doc(uid).delete(); },
+
+      // Audit log — stored in top-level collection, never sandbox
+      logAudit: async (entry) => {
+        await _db.collection('auditLog').add({
+          ...entry,
+          timestamp: _ts(),
+          env: _root()
+        });
+      },
+      getAuditLog: async (limitN) => {
+        const s = await _db.collection('auditLog')
+          .orderBy('timestamp','desc')
+          .limit(limitN||200)
+          .get();
+        return s.docs.map(d=>({id:d.id,...d.data()}));
+      },
       saveCustomer: async (d) => {
         if (d.id) { const {id,...r}=d; await _col('customers').doc(id).set({...r,updatedAt:_ts()},{merge:true}); return id; }
         const ref = await _col('customers').add({...d,createdAt:_ts()}); return ref.id;
@@ -1339,6 +1356,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="sub-tab" onclick="switchSubTab('custconfig',this)">Custom Configurations</div>
     <div class="sub-tab" onclick="switchSubTab('karat',this)">Karat Pricing</div>
     <div class="sub-tab" onclick="switchSubTab('users',this)">Users &amp; Access</div>
+    <div class="sub-tab" onclick="switchSubTab('auditlog',this);loadAuditLog()">Audit Log</div>
   </div>
 
   <!-- Company Details -->
@@ -1551,8 +1569,56 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
     </div>
   </div>
-</div>
 
+  <!-- Audit Log -->
+  <div id="sub-auditlog" class="sub-pane">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <div class="card-title" style="margin-bottom:0;">Audit Log</div>
+        <div style="display:flex;gap:8px;">
+          <select class="form-control" style="width:160px;" id="auditFilterUser" onchange="filterAuditLog()">
+            <option value="">All Users</option>
+          </select>
+          <select class="form-control" style="width:160px;" id="auditFilterAction" onchange="filterAuditLog()">
+            <option value="">All Actions</option>
+            <option>Login</option>
+            <option>Logout</option>
+            <option>Customer Saved</option>
+            <option>Invoice Saved</option>
+            <option>Expense Saved</option>
+            <option>Expense Deleted</option>
+            <option>Inventory Added</option>
+            <option>Inventory Edited</option>
+            <option>Inventory Deleted</option>
+            <option>Vendor Saved</option>
+            <option>User Created</option>
+            <option>User Deleted</option>
+            <option>Settings Saved</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="exportAuditLog()">↓ Export CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>User</th>
+              <th>Role</th>
+              <th>Action</th>
+              <th>Details</th>
+              <th>Mode</th>
+            </tr>
+          </thead>
+          <tbody id="auditLogBody">
+            <tr><td colspan="6" style="text-align:center;color:var(--text3);padding:28px;">Loading audit log...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
 </div><!-- /main -->
 
 <!-- ========== MODALS ========== -->
@@ -2099,6 +2165,7 @@ async function saveInvoice() {
   try {
     showToast('Saving invoice...');
     await window.DB.saveInvoice(invoiceData);
+    audit('Invoice Saved', invNum + ' · ' + custName + ' · $' + total);
     document.getElementById('invoiceNumBadge').textContent = invNum;
     if (document.getElementById('inv-num')) document.getElementById('inv-num').textContent = invNum;
     // Mark items sold in inventory
@@ -2381,6 +2448,7 @@ async function confirmManualInwardInline() {
     for (const item of items) {
       for (let q=0; q<item.qty; q++) await window.DB.saveInventoryItem({...item, qty:1});
     }
+    audit('Inventory Added', items.length + ' item(s) from ' + vendor);
     showToast('✓ '+items.length+' item(s) added to inventory');
     document.getElementById('manualVendorName').value = '-- Select Vendor --';
     document.getElementById('manualVendorInv').value = '';
@@ -2604,6 +2672,7 @@ async function saveNewClient() {
   try {
     showToast('Saving client...');
     await window.DB.saveCustomer(data);
+    audit('Customer Saved', first + ' ' + last);
     showToast('✓ Client saved · ' + first + ' ' + last);
     ['newClientFirst','newClientLast','newClientPhone','newClientEmail','newClientAddr','newClientNotes'].forEach(f => { const el=document.getElementById(f); if(el) el.value=''; });
     document.getElementById('newClientSource').value = '';
@@ -3039,6 +3108,8 @@ async function doLogin() {
     if (sel && currentUser.role === 'MasterAdmin') await refreshPermUserDropdown();
     window._loginAttempts = []; // clear on success
     showToast('Welcome, ' + currentUser.name + (window._sandboxMode ? ' — SANDBOX MODE' : ''));
+    startInactivityWatcher();
+    audit('Login', 'Signed in successfully');
     loadAllData();
   } catch(e) {
     let msg = 'Incorrect username or password.';
@@ -3065,6 +3136,8 @@ async function refreshPermUserDropdown() {
 }
 
 function exitSandbox() {
+  audit('Logout', 'Exited sandbox mode');
+  stopInactivityWatcher();
   window._sandboxMode = false;
   currentUser = null;
   window.DB.authSignOut().catch(()=>{});
@@ -3533,6 +3606,7 @@ async function deleteExpenseRow(id) {
   if (!confirm('Delete this expense entry?')) return;
   try {
     await window.DB.deleteExpense(id);
+    audit('Expense Deleted', 'Entry ID: ' + id);
     _expenses = _expenses.filter(e => e.id !== id);
     updateExpenseMetrics();
     refreshDashboard();
@@ -3757,6 +3831,7 @@ async function saveEditedInventoryItem() {
   try {
     showToast('Saving...');
     await window.DB.updateInventoryItem(id, updates);
+    audit('Inventory Edited', updates.itemName + ' · SKU: ' + (document.getElementById('editInvSKU')?.value||''));
     const idx = _inventory.findIndex(i => i.id === id);
     if (idx > -1) _inventory[idx] = { ..._inventory[idx], ...updates };
     renderInventoryTable(_inventory);
@@ -3771,6 +3846,7 @@ async function deleteInventoryItem() {
   if (!confirm('Delete "' + name + '" from inventory? This cannot be undone.')) return;
   try {
     await window.DB.deleteInventoryItem(id);
+    audit('Inventory Deleted', name);
     _inventory = _inventory.filter(i => i.id !== id);
     renderInventoryTable(_inventory);
     closeModal('editInventoryModal');
@@ -3937,6 +4013,125 @@ function updatePassword(pwdId, name) {
   showToast('Password updated for ' + name);
 }
 
+// ===== AUTO-LOGOUT AFTER 10 MINUTES INACTIVITY =====
+let _inactivityTimer = null;
+const INACTIVITY_LIMIT = 10 * 60 * 1000; // 10 minutes
+
+function resetInactivityTimer() {
+  if (!currentUser) return;
+  clearTimeout(_inactivityTimer);
+  _inactivityTimer = setTimeout(() => {
+    audit('Auto-Logout', 'Session expired after 10 minutes of inactivity');
+    showToast('Session expired — logging out');
+    setTimeout(performLogout, 1500);
+  }, INACTIVITY_LIMIT);
+}
+
+function startInactivityWatcher() {
+  ['click','keydown','mousemove','touchstart','scroll'].forEach(evt => {
+    document.addEventListener(evt, resetInactivityTimer, { passive: true });
+  });
+  resetInactivityTimer();
+}
+
+function stopInactivityWatcher() {
+  clearTimeout(_inactivityTimer);
+  ['click','keydown','mousemove','touchstart','scroll'].forEach(evt => {
+    document.removeEventListener(evt, resetInactivityTimer);
+  });
+}
+
+function performLogout() {
+  stopInactivityWatcher();
+  currentUser = null;
+  window.DB.authSignOut().catch(()=>{});
+  window._sandboxMode = false;
+  document.getElementById('sandboxBanner').style.display = 'none';
+  document.querySelector('.topbar').style.top = '0';
+  document.querySelector('.nav-tabs').style.top = '54px';
+  document.body.style.paddingTop = '54px';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  _inventory = []; _invoices = []; _customers = []; _expenses = []; _settings = {};
+}
+
+// ===== AUDIT LOG =====
+let _auditCache = [];
+
+async function audit(action, details) {
+  if (!currentUser || window._firebaseOffline) return;
+  try {
+    await window.DB.logAudit({
+      user: currentUser.name || currentUser.username || currentUser.email || 'Unknown',
+      role: currentUser.role || '—',
+      action,
+      details: details || '',
+    });
+  } catch(e) { console.warn('audit log failed:', e); }
+}
+
+async function loadAuditLog() {
+  const tbody = document.getElementById('auditLogBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px;">Loading...</td></tr>';
+  try {
+    _auditCache = await window.DB.getAuditLog(500);
+    renderAuditLog(_auditCache);
+    // Populate user filter
+    const users = [...new Set(_auditCache.map(e=>e.user))];
+    const sel = document.getElementById('auditFilterUser');
+    if (sel) sel.innerHTML = '<option value="">All Users</option>' + users.map(u=>`<option>${u}</option>`).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px;">Could not load audit log.</td></tr>';
+  }
+}
+
+function renderAuditLog(entries) {
+  const tbody = document.getElementById('auditLogBody');
+  if (!tbody) return;
+  if (!entries.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px;">No activity recorded yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = entries.map(e => {
+    const ts = e.timestamp?.toDate ? e.timestamp.toDate() : new Date();
+    const timeStr = ts.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const envBadge = e.env==='sandbox' ? '<span class="badge badge-red" style="font-size:10px;">Sandbox</span>' : '<span class="badge badge-green" style="font-size:10px;">Live</span>';
+    return `<tr>
+      <td style="font-size:12px;white-space:nowrap;">${timeStr}</td>
+      <td style="font-weight:500;">${e.user||'—'}</td>
+      <td><span class="badge badge-gray" style="font-size:10px;">${e.role||'—'}</span></td>
+      <td style="font-weight:500;color:var(--gold-dark);">${e.action||'—'}</td>
+      <td style="font-size:12px;color:var(--text2);">${e.details||'—'}</td>
+      <td>${envBadge}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterAuditLog() {
+  const userF   = document.getElementById('auditFilterUser')?.value||'';
+  const actionF = document.getElementById('auditFilterAction')?.value||'';
+  const filtered = _auditCache.filter(e =>
+    (!userF   || e.user   === userF) &&
+    (!actionF || e.action === actionF)
+  );
+  renderAuditLog(filtered);
+}
+
+function exportAuditLog() {
+  if (!_auditCache.length) { showToast('No audit data to export'); return; }
+  const lines = ['Time,User,Role,Action,Details,Mode'];
+  _auditCache.forEach(e => {
+    const ts = e.timestamp?.toDate ? e.timestamp.toDate().toLocaleString() : '';
+    lines.push([ts, e.user||'', e.role||'', e.action||'', (e.details||'').replace(/,/g,' '), e.env||''].join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'kalu-audit-log.csv'; a.click();
+  showToast('✓ Audit log downloaded');
+}
+
 // ===== VENDORS =====
 let _vendors = [];
 
@@ -4072,6 +4267,7 @@ async function addNewUser() {
     const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9.]/g,'');
     const profile = { username, name, email, role, sandbox: false, createdBy: currentUser?.name||'' };
     await window.DB.saveUserProfile(fbUser.uid, profile);
+    audit('User Created', name + ' · ' + role + ' · ' + email);
     // Update local cache
     USERS_DB[username] = { role, name };
     _firestoreUsers.push({ uid: fbUser.uid, ...profile });
@@ -4092,6 +4288,7 @@ async function deleteFirestoreUser(uid, name) {
   if (!confirm('Remove user ' + name + '? They will no longer be able to log in.')) return;
   try {
     await window.DB.deleteUserProfile(uid);
+    audit('User Deleted', name);
     _firestoreUsers = _firestoreUsers.filter(u=>u.uid!==uid);
     renderFirestoreUsersList();
     await refreshPermUserDropdown();
@@ -4174,6 +4371,7 @@ submitAllExpenses = async function() {
   try {
     showToast('Saving...');
     for (const exp of expenses) await window.DB.saveExpense(exp);
+    audit('Expense Saved', expenses.length + ' entr' + (expenses.length===1?'y':'ies'));
     showToast('✓ '+expenses.length+' expense(s) saved');
     document.getElementById('expenseRowsContainer').innerHTML = '';
     expRowCounter = 1; addExpenseRow();
