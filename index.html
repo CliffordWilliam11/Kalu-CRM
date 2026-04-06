@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kalü Jewelry — Management System v15</title>
+<title>Kalü Jewelry — Management System v16</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -373,6 +373,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 </style>
 <!-- Firebase compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -394,7 +395,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       saveUser: _noopSave, getUsers: _noop, deleteUser: _noop,
       uploadFile: async () => ({ url:'', path:'', name:'' }), deleteFile: _noop,
       saveSettings: _noop, getSettings: async () => ({}),
-      clearSandbox: _noop
+      clearSandbox: _noop,
+      // Auth noops for offline
+      authSignIn: async () => { throw new Error('Offline mode'); },
+      authSignOut: async () => {},
+      authCreateUser: async () => { throw new Error('Offline mode'); },
+      authDeleteUser: async () => {},
+      getUserProfile: async () => null,
+      saveUserProfile: _noopSave,
     };
     return;
   }
@@ -412,12 +420,36 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       });
     }
     const _db = firebase.firestore();
+    const _auth = firebase.auth();
     const _storage = firebase.storage();
     function _root() { return window._sandboxMode ? 'sandbox' : 'live'; }
     function _col(name) { return _db.collection(_root()).doc('data').collection(name); }
     const _ts = () => firebase.firestore.FieldValue.serverTimestamp();
 
     window.DB = {
+      // ── Auth methods ──
+      authSignIn: async (email, pass) => {
+        const cred = await _auth.signInWithEmailAndPassword(email, pass);
+        return cred.user;
+      },
+      authSignOut: async () => { await _auth.signOut(); },
+      authCreateUser: async (email, pass) => {
+        const cred = await _auth.createUserWithEmailAndPassword(email, pass);
+        return cred.user;
+      },
+      // User profiles stored in Firestore (not passwords — Auth handles those)
+      saveUserProfile: async (uid, d) => {
+        await _db.collection('userProfiles').doc(uid).set({...d, updatedAt:_ts()}, {merge:true});
+      },
+      getUserProfile: async (uid) => {
+        const doc = await _db.collection('userProfiles').doc(uid).get();
+        return doc.exists ? doc.data() : null;
+      },
+      getAllUserProfiles: async () => {
+        const s = await _db.collection('userProfiles').get();
+        return s.docs.map(d => ({uid: d.id, ...d.data()}));
+      },
+      deleteUserProfile: async (uid) => { await _db.collection('userProfiles').doc(uid).delete(); },
       saveCustomer: async (d) => {
         if (d.id) { const {id,...r}=d; await _col('customers').doc(id).set({...r,updatedAt:_ts()},{merge:true}); return id; }
         const ref = await _col('customers').add({...d,createdAt:_ts()}); return ref.id;
@@ -513,7 +545,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <button class="btn btn-gold" style="width:100%;padding:11px;font-size:14px;font-weight:600;" onclick="doLogin()">Sign In</button>
     <div style="margin-top:16px;font-size:11px;color:var(--text3);">Kal&#252; Jewelry &middot; Authorized personnel only</div>
     <div style="margin-top:10px;padding:8px 12px;background:var(--beige2);border-radius:6px;font-size:11px;color:var(--text3);text-align:left;">
-      🧪 <strong>Sandbox test login:</strong> username <code>test</code> / password <code>Test@Kalu1</code><br>
+      🧪 <strong>Sandbox test:</strong> use your <code>test</code> account credentials.<br>
       Test data stays completely separate from live data.
     </div>
   </div>
@@ -1479,7 +1511,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <div class="new-user-grid">
         <div class="form-group" style="margin-bottom:0;"><label>Full Name *</label><input type="text" class="form-control" id="newUserName" placeholder="First Last"></div>
         <div class="form-group" style="margin-bottom:0;"><label>Email / Username *</label><input type="email" class="form-control" id="newUserEmail" placeholder="user@kalujewelry.com"></div>
-        <div class="form-group" style="margin-bottom:0;"><label>Role *</label><select class="form-control" id="newUserRole"><option>Admin</option><option>Sales</option><option>Inventory</option></select></div>
+        <div class="form-group" style="margin-bottom:0;"><label>Role *</label><select class="form-control" id="newUserRole"><option>Sales</option><option>Merchandising</option><option>Management</option></select></div>
         <div class="form-group" style="margin-bottom:0;"><label>Temporary Password *</label><div style="position:relative;"><input type="password" class="form-control" id="newUserPass" placeholder="Min 8 characters" style="padding-right:36px;"><span onclick="togglePwdVis('newUserPass',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">&#128065;</span></div></div>
         <button class="btn btn-gold" onclick="addNewUser()" style="white-space:nowrap;">+ Add User</button>
       </div>
@@ -1490,26 +1522,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div style="display:flex;flex-direction:column;gap:10px;" id="usersList">
           <div style="padding:12px;background:var(--gold-pale);border-radius:8px;border:1px solid var(--gold-light);">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--gold-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold-pale);">MA</div><div><div style="font-weight:600;">MasterAdmin</div><div style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b6dbd7c5c2d3c4d7d2dbdfd8f6ddd7dac3dcd3c1d3dac4cf98d5d9db">[email&#160;protected]</a></div><div style="font-size:11px;color:var(--gold-dark);">Full system access &middot; Cannot be removed</div></div></div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:36px;height:36px;background:var(--gold-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold-pale);">MA</div>
+                <div><div style="font-weight:600;">MasterAdmin</div><div style="font-size:11px;color:var(--gold-dark);">Full system access · Cannot be removed</div></div>
+              </div>
               <span class="badge" style="background:var(--gold-dark);color:var(--gold-pale);">MasterAdmin</span>
             </div>
           </div>
-          <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);" id="user-SA">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--gold-mid);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--gold-dark);">SA</div><div><div style="font-weight:600;">Sarah A.</div><div style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d0a3b1a2b1b890bbb1bca5bab5a7b5bca2a9feb3bfbd">[email&#160;protected]</a></div></div></div><div style="display:flex;align-items:center;gap:6px;"><select class="form-control" style="width:110px;padding:4px 8px;font-size:12px;"><option selected>Admin</option><option>Sales</option><option>Inventory</option></select><button class="btn btn-danger btn-sm btn-icon" onclick="removeUser('user-SA','Sarah A.')">&#x2715;</button></div></div>
-            <div style="display:flex;gap:8px;align-items:center;"><div style="position:relative;flex:1;"><input type="password" class="form-control" placeholder="New password" style="padding:6px 36px 6px 10px;font-size:12px;" id="pwd-SA"><span onclick="togglePwdVis('pwd-SA',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">&#128065;</span></div><button class="btn btn-outline btn-sm" onclick="updatePassword('pwd-SA','Sarah A.')">Update Password</button></div>
-          </div>
-          <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);" id="user-MR">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--beige3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);">MR</div><div><div style="font-weight:600;">Mike R.</div><div style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b2dfdbd9d7f2d9d3dec7d8d7c5d7dec0cb9cd1dddf">[email&#160;protected]</a></div></div></div><div style="display:flex;align-items:center;gap:6px;"><select class="form-control" style="width:110px;padding:4px 8px;font-size:12px;"><option>Admin</option><option selected>Sales</option><option>Inventory</option></select><button class="btn btn-danger btn-sm btn-icon" onclick="removeUser('user-MR','Mike R.')">&#x2715;</button></div></div>
-            <div style="display:flex;gap:8px;align-items:center;"><div style="position:relative;flex:1;"><input type="password" class="form-control" placeholder="New password" style="padding:6px 36px 6px 10px;font-size:12px;" id="pwd-MR"><span onclick="togglePwdVis('pwd-MR',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">&#128065;</span></div><button class="btn btn-outline btn-sm" onclick="updatePassword('pwd-MR','Mike R.')">Update Password</button></div>
-          </div>
-          <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);" id="user-PK">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--beige3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);">PK</div><div><div style="font-weight:600;">Priya K.</div><div style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6515170c1c04250e0409100f00120009171c4b060a08">[email&#160;protected]</a></div></div></div><div style="display:flex;align-items:center;gap:6px;"><select class="form-control" style="width:110px;padding:4px 8px;font-size:12px;"><option>Admin</option><option selected>Sales</option><option>Inventory</option></select><button class="btn btn-danger btn-sm btn-icon" onclick="removeUser('user-PK','Priya K.')">&#x2715;</button></div></div>
-            <div style="display:flex;gap:8px;align-items:center;"><div style="position:relative;flex:1;"><input type="password" class="form-control" placeholder="New password" style="padding:6px 36px 6px 10px;font-size:12px;" id="pwd-PK"><span onclick="togglePwdVis('pwd-PK',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">&#128065;</span></div><button class="btn btn-outline btn-sm" onclick="updatePassword('pwd-PK','Priya K.')">Update Password</button></div>
-          </div>
-          <div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);" id="user-JT">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--beige3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);">JT</div><div><div style="font-weight:600;">James T.</div><div style="font-size:12px;color:var(--text2);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d3b9b2beb6a093b8b2bfa6b9b6a4b6bfa1aafdb0bcbe">[email&#160;protected]</a></div></div></div><div style="display:flex;align-items:center;gap:6px;"><select class="form-control" style="width:110px;padding:4px 8px;font-size:12px;"><option>Admin</option><option>Sales</option><option selected>Inventory</option></select><button class="btn btn-danger btn-sm btn-icon" onclick="removeUser('user-JT','James T.')">&#x2715;</button></div></div>
-            <div style="display:flex;gap:8px;align-items:center;"><div style="position:relative;flex:1;"><input type="password" class="form-control" placeholder="New password" style="padding:6px 36px 6px 10px;font-size:12px;" id="pwd-JT"><span onclick="togglePwdVis('pwd-JT',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">&#128065;</span></div><button class="btn btn-outline btn-sm" onclick="updatePassword('pwd-JT','James T.')">Update Password</button></div>
-          </div>
+          <div style="padding:16px;text-align:center;color:var(--text3);font-size:13px;" id="usersListLoading">Loading team members...</div>
         </div>
       </div>
       <div class="card">
@@ -1517,10 +1537,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
           <div class="card-title" style="margin-bottom:0;">User Permissions</div>
           <select class="form-control" style="width:180px;" id="permUserSelect" onchange="loadUserPermissions(this.value)">
             <option value="">— Select a user —</option>
-            <option value="sarah.a">Sarah A. (Admin)</option>
-            <option value="mike.r">Mike R. (Sales)</option>
-            <option value="priya.k">Priya K. (Sales)</option>
-            <option value="james.t">James T. (Inventory)</option>
           </select>
         </div>
         <div id="permUserPanel" style="display:none;">
@@ -2953,56 +2969,105 @@ let _customers = [];
 let _expenses  = [];
 let _settings  = {};
 
-const USERS_DB = {
-  'masteradmin': { pass: 'Kalu@2025!MA', role: 'MasterAdmin', name: 'MasterAdmin' },
-  'sarah.a':     { pass: 'Kalu@Sarah1',  role: 'Admin',       name: 'Sarah A.' },
-  'mike.r':      { pass: 'Kalu@Mike01',  role: 'Sales',       name: 'Mike R.' },
-  'priya.k':     { pass: 'Kalu@Priya1',  role: 'Sales',       name: 'Priya K.' },
-  'james.t':     { pass: 'Kalu@James1',  role: 'Inventory',   name: 'James T.' },
-  'test':        { pass: 'Test@Kalu1',   role: 'Admin',       name: 'Test User', sandbox: true }
-};
+// ── User profile cache (role/name loaded from Firestore after auth) ──
+// No passwords stored here — Firebase Auth handles all authentication
+const USERS_DB = {}; // populated at runtime from Firestore userProfiles
 let currentUser = null;
 
-function doLogin() {
-  const u   = (document.getElementById('loginUser').value || '').toLowerCase().trim();
-  const p   = document.getElementById('loginPass').value;
-  const err = document.getElementById('loginErr');
-  if (USERS_DB[u] && USERS_DB[u].pass === p) {
-    currentUser = { username: u, ...USERS_DB[u] };
-    window._sandboxMode = !!currentUser.sandbox;
+// Map email → username for display (no passwords)
+const EMAIL_TO_USERNAME = {
+  'masteradmin@kalujewelry.com': 'masteradmin',
+  'sales@kalujewelry.com':       'sales',
+  'merchandising@kalujewelry.com': 'merchandising',
+  'management@kalujewelry.com':  'management',
+};
+
+async function doLogin() {
+  const input = (document.getElementById('loginUser').value || '').toLowerCase().trim();
+  const pass  = document.getElementById('loginPass').value;
+  const err   = document.getElementById('loginErr');
+  err.style.display = 'none';
+
+  if (!input || !pass) { err.textContent = 'Please enter username and password.'; err.style.display = 'block'; return; }
+
+  // Rate limiting — max 5 attempts per 5 minutes
+  const now = Date.now();
+  window._loginAttempts = window._loginAttempts || [];
+  window._loginAttempts = window._loginAttempts.filter(t => now - t < 5 * 60 * 1000);
+  if (window._loginAttempts.length >= 5) {
+    err.textContent = 'Too many attempts. Please wait 5 minutes.';
+    err.style.display = 'block';
+    return;
+  }
+  window._loginAttempts.push(now);
+
+  // Convert username to email for Firebase Auth
+  // Accept either username (e.g. sarah.a) or full email
+  let email = input.includes('@') ? input : input + '@kalujewelry.com';
+
+  // Special sandbox check
+  const isSandbox = (input === 'test' || email === 'test@kalujewelry.com');
+
+  const btn = document.querySelector('#loginScreen button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in...'; }
+
+  try {
+    const fbUser = await window.DB.authSignIn(email, pass);
+    // Load user profile from Firestore
+    let profile = await window.DB.getUserProfile(fbUser.uid);
+    if (!profile) {
+      // Fallback for masteradmin bootstrapping
+      profile = { role: 'MasterAdmin', name: 'MasterAdmin', username: 'masteradmin', sandbox: false };
+    }
+    currentUser = { uid: fbUser.uid, email: fbUser.email, username: profile.username || input, ...profile };
+    window._sandboxMode = !!profile.sandbox;
+    // Cache in USERS_DB for permission lookups
+    USERS_DB[currentUser.username] = { role: profile.role, name: profile.name };
+
     document.getElementById('loginScreen').style.display = 'none';
-    // Show sandbox banner
     if (window._sandboxMode) {
       document.getElementById('sandboxBanner').style.display = 'block';
       document.querySelector('.topbar').style.top = '36px';
       document.querySelector('.nav-tabs').style.top = '90px';
       document.body.style.paddingTop = '90px';
     }
-    const initials = currentUser.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const initials = (currentUser.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const avatarEl = document.querySelector('.topbar div:last-child div:last-child');
     if (avatarEl) avatarEl.textContent = initials;
-    err.style.display = 'none';
-    // Populate the permissions user dropdown with all non-master users
+    // Populate permissions dropdown for MasterAdmin
     const sel = document.getElementById('permUserSelect');
-    if (sel && currentUser.role === 'MasterAdmin') {
-      sel.innerHTML = '<option value="">— Select a user —</option>' +
-        Object.entries(USERS_DB)
-          .filter(([k,v]) => v.role !== 'MasterAdmin' && !v.sandbox)
-          .map(([k,v]) => `<option value="${k}">${v.name} (${v.role})</option>`)
-          .join('');
-    }
+    if (sel && currentUser.role === 'MasterAdmin') await refreshPermUserDropdown();
+    window._loginAttempts = []; // clear on success
     showToast('Welcome, ' + currentUser.name + (window._sandboxMode ? ' — SANDBOX MODE' : ''));
     loadAllData();
-  } else {
+  } catch(e) {
+    let msg = 'Incorrect username or password.';
+    if (e.code === 'auth/too-many-requests') msg = 'Account temporarily locked. Try again later.';
+    if (e.code === 'auth/user-disabled') msg = 'This account has been disabled.';
+    err.textContent = msg;
     err.style.display = 'block';
     document.getElementById('loginPass').value = '';
     document.getElementById('loginPass').focus();
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
   }
+}
+
+async function refreshPermUserDropdown() {
+  const sel = document.getElementById('permUserSelect');
+  if (!sel) return;
+  try {
+    const profiles = await window.DB.getAllUserProfiles();
+    sel.innerHTML = '<option value="">— Select a user —</option>' +
+      profiles.filter(p => p.role !== 'MasterAdmin' && !p.sandbox)
+        .map(p => `<option value="${p.uid}">${p.name} (${p.role})</option>`).join('');
+  } catch(e) { console.warn('refreshPermUserDropdown:', e); }
 }
 
 function exitSandbox() {
   window._sandboxMode = false;
   currentUser = null;
+  window.DB.authSignOut().catch(()=>{});
   document.getElementById('sandboxBanner').style.display = 'none';
   document.querySelector('.topbar').style.top = '0';
   document.querySelector('.nav-tabs').style.top = '54px';
@@ -3163,9 +3228,12 @@ const ALL_PERMISSIONS = [
 ];
 
 const ROLE_DEFAULTS = {
-  Admin:     ['createInvoice','deleteInvoice','viewInventory','addStock','editInventory','viewExpenses','addExpenses','viewDashboard','viewCustomers','editCustomers','exportData','adminSettings','manageUsers','updatePasswords','karatPricing'],
-  Sales:     ['createInvoice','viewInventory','viewCustomers','editCustomers','viewExpenses','addExpenses'],
-  Inventory: ['viewInventory','addStock','editInventory','viewCustomers'],
+  // Sales — customer billing and inventory check
+  Sales:         ['createInvoice','viewInventory','viewCustomers','editCustomers','viewExpenses','addExpenses','exportData'],
+  // Merchandising — inventory add and check
+  Merchandising: ['viewInventory','addStock','editInventory','viewCustomers','exportData'],
+  // Management — everything except Admin settings
+  Management:    ['createInvoice','deleteInvoice','viewInventory','addStock','editInventory','viewExpenses','addExpenses','deleteExpenses','viewDashboard','viewCustomers','editCustomers','exportData','karatPricing'],
 };
 
 let _currentPermUser = null;
@@ -3932,46 +4000,61 @@ let _firestoreUsers = [];
 
 async function loadUsers() {
   try {
-    _firestoreUsers = await window.DB.getUsers();
-    _firestoreUsers.forEach(u => {
-      if (u.username && u.pass) USERS_DB[u.username] = { pass: u.pass, role: u.role||'Sales', name: u.name||u.username };
+    const profiles = await window.DB.getAllUserProfiles();
+    _firestoreUsers = profiles;
+    profiles.forEach(p => {
+      if (p.username) USERS_DB[p.username] = { role: p.role||'Sales', name: p.name||p.username };
     });
     renderFirestoreUsersList();
+    if (currentUser?.role === 'MasterAdmin') await refreshPermUserDropdown();
   } catch(e) { console.warn('loadUsers:', e); }
 }
 
 function renderFirestoreUsersList() {
-  // Only update if there are Firestore users — don't overwrite the static HTML if empty
-  if (!_firestoreUsers.length) return;
   const list = document.getElementById('usersList');
   if (!list) return;
-  const masterRow = list.querySelector('[id="user-MA"]')?.outerHTML || `<div style="padding:12px;background:var(--gold-pale);border-radius:8px;border:1px solid var(--gold-light);">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:var(--gold-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold-pale);">MA</div>
-      <div><div style="font-weight:600;">MasterAdmin</div><div style="font-size:11px;color:var(--gold-dark);">Full system access · Cannot be removed</div></div></div>
-      <span class="badge" style="background:var(--gold-dark);color:var(--gold-pale);">MasterAdmin</span>
-    </div>
-  </div>`;
-  const newRows = _firestoreUsers.map(u => {
-    const initials = (u.name||u.username||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    return `<div style="padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+  const loading = document.getElementById('usersListLoading');
+  if (loading) loading.remove();
+
+  // Remove existing non-master rows then re-render
+  Array.from(list.querySelectorAll('[data-fs-user]')).forEach(el => el.remove());
+
+  const roleColor = r => r==='Management'?'badge-gold':r==='Merchandising'?'badge-green':'badge-blue';
+
+  const newRows = _firestoreUsers.filter(u => u.role !== 'MasterAdmin').map(u => {
+    const initials = (u.name||u.email||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const div = document.createElement('div');
+    div.setAttribute('data-fs-user', u.uid||'');
+    div.style.cssText = 'padding:12px;background:var(--beige);border-radius:8px;border:1px solid var(--border);';
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;">
         <div style="display:flex;align-items:center;gap:10px;">
           <div style="width:36px;height:36px;background:var(--beige3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);">${initials}</div>
-          <div><div style="font-weight:600;">${u.name||u.username}</div><div style="font-size:12px;color:var(--text2);">${u.email||u.username} · ${u.role}</div></div>
+          <div>
+            <div style="font-weight:600;">${u.name||'—'}</div>
+            <div style="font-size:12px;color:var(--text2);">${u.email||''}</div>
+          </div>
         </div>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteFirestoreUser('${u.username}','${u.name||u.username}')">✕</button>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge ${roleColor(u.role)}">${u.role}</span>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteFirestoreUser('${u.uid}','${(u.name||u.email).replace(/'/g,"\\'")}')">✕</button>
         </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <div style="position:relative;flex:1;"><input type="password" class="form-control" placeholder="New password" style="padding:6px 36px 6px 10px;font-size:12px;" id="pwd-fs-${u.username}">
-        <span onclick="togglePwdVis('pwd-fs-${u.username}',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">👁</span></div>
-        <button class="btn btn-outline btn-sm" onclick="updateFirestorePassword('${u.username}')">Update Password</button>
-      </div>
-    </div>`;
-  }).join('');
-  list.innerHTML = masterRow + newRows;
+      <div style="margin-top:8px;font-size:11px;color:var(--text3);padding:5px 8px;background:var(--beige2);border-radius:4px;">
+        🔒 Password secured via Firebase Authentication
+      </div>`;
+    return div;
+  });
+
+  newRows.forEach(row => list.appendChild(row));
+
+  if (!_firestoreUsers.filter(u=>u.role!=='MasterAdmin').length) {
+    const empty = document.createElement('div');
+    empty.setAttribute('data-fs-user','empty');
+    empty.style.cssText = 'padding:16px;text-align:center;color:var(--text3);font-size:13px;';
+    empty.textContent = 'No team members yet — add one above.';
+    list.appendChild(empty);
+  }
 }
 
 async function addNewUser() {
@@ -3981,39 +4064,46 @@ async function addNewUser() {
   const pass  = document.getElementById('newUserPass').value;
   if (!name || !email || !pass) { showToast('Fill in all required fields'); return; }
   if (pass.length < 8) { showToast('Password must be at least 8 characters'); return; }
-  const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9.]/g,'');
   try {
-    await window.DB.saveUser({ username, name, email, role, pass, createdBy: currentUser?.name||'' });
-    USERS_DB[username] = { pass, role, name };
-    _firestoreUsers.push({ username, name, email, role, pass });
+    showToast('Creating user...');
+    // Create Firebase Auth user
+    const fbUser = await window.DB.authCreateUser(email, pass);
+    // Save profile to Firestore (no password stored)
+    const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9.]/g,'');
+    const profile = { username, name, email, role, sandbox: false, createdBy: currentUser?.name||'' };
+    await window.DB.saveUserProfile(fbUser.uid, profile);
+    // Update local cache
+    USERS_DB[username] = { role, name };
+    _firestoreUsers.push({ uid: fbUser.uid, ...profile });
     renderFirestoreUsersList();
+    await refreshPermUserDropdown();
     document.getElementById('newUserName').value='';
     document.getElementById('newUserEmail').value='';
     document.getElementById('newUserPass').value='';
-    showToast('✓ User ' + name + ' added (' + role + ')');
-  } catch(e) { showToast('⚠ ' + e.message); }
+    showToast('✓ User ' + name + ' created (' + role + ')');
+  } catch(e) {
+    if (e.code === 'auth/email-already-in-use') showToast('⚠ That email is already registered');
+    else if (e.code === 'auth/invalid-email') showToast('⚠ Invalid email address');
+    else showToast('⚠ ' + e.message);
+  }
 }
 
-async function deleteFirestoreUser(username, name) {
-  if (!confirm('Remove user ' + name + '?')) return;
+async function deleteFirestoreUser(uid, name) {
+  if (!confirm('Remove user ' + name + '? They will no longer be able to log in.')) return;
   try {
-    await window.DB.deleteUser(username);
-    delete USERS_DB[username];
-    _firestoreUsers = _firestoreUsers.filter(u=>u.username!==username);
+    await window.DB.deleteUserProfile(uid);
+    _firestoreUsers = _firestoreUsers.filter(u=>u.uid!==uid);
     renderFirestoreUsersList();
+    await refreshPermUserDropdown();
     showToast('✓ ' + name + ' removed');
   } catch(e) { showToast('⚠ ' + e.message); }
 }
 
-async function updateFirestorePassword(username) {
-  const inp = document.getElementById('pwd-fs-' + username);
+async function updateFirestorePassword(uid) {
+  const inp = document.getElementById('pwd-fs-' + uid);
   if (!inp || inp.value.length < 8) { showToast('Password must be at least 8 characters'); return; }
-  try {
-    await window.DB.saveUser({ username, pass: inp.value });
-    if (USERS_DB[username]) USERS_DB[username].pass = inp.value;
-    inp.value = '';
-    showToast('✓ Password updated');
-  } catch(e) { showToast('⚠ ' + e.message); }
+  showToast('⚠ Password changes require the user to use "Forgot Password" or Firebase Console for security. Contact your admin.');
+  inp.value = '';
 }
 
 // ===== RECEIPT UPLOAD =====
