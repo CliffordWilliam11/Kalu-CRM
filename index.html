@@ -804,7 +804,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
       <!-- INVOICE META ROW -->
       <div class="grid-3" style="margin-bottom:0;">
-        <div class="form-group"><label>Invoice Date</label><input type="date" class="form-control" id="invDate"></div>
+        <div class="form-group"><label>Invoice Date <span style="font-size:10px;color:var(--text3);font-weight:400;">(auto — today)</span></label><input type="date" class="form-control" id="invDate" readonly style="background:var(--beige2);cursor:not-allowed;" title="Date is set automatically to today"></div>
         <div class="form-group"><label>Sales Person</label><select class="form-control" id="salesPerson"><option>Sarah A.</option><option>Mike R.</option><option>Priya K.</option><option>James T.</option></select></div>
         <div class="form-group"><label>Billing Source *</label>
           <input type="hidden" id="selectedClientId" value="">
@@ -1085,8 +1085,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <input type="text" class="form-control" id="manualVendorInv" placeholder="e.g. RGC-2025-113">
       </div>
       <div class="form-group" style="margin-bottom:0;">
-        <label>Inward Date</label>
-        <input type="date" class="form-control" id="manualInwardDate">
+        <label>Inward Date <span style="font-size:10px;color:var(--text3);font-weight:400;">(auto — today)</span></label>
+        <input type="date" class="form-control" id="manualInwardDate" readonly style="background:var(--beige2);cursor:not-allowed;" title="Date is set automatically to today">
       </div>
     </div>
     <!-- Gold rate inputs: hidden, auto-synced from Admin → Karat Pricing on load -->
@@ -2168,7 +2168,7 @@ async function saveInvoice() {
     const amt  = parseFloat(r.querySelector('input[type=number]')?.value) || 0;
     if (mode && amt > 0) payments.push({mode, amount: amt});
   });
-  const invoiceData = { invoiceNum: invNum, date: document.getElementById('invDate')?.value||'', customerName: custName, customerId: custId, salesPerson: document.getElementById('invSales')?.value||'', billingSource: document.getElementById('billingSource')?.value||'', items: lineItems, subtotal, total, payments, status:'Paid', createdBy: currentUser?.name||'' };
+  const invoiceData = { invoiceNum: invNum, date: new Date().toISOString().split('T')[0], customerName: custName, customerId: custId, salesPerson: document.getElementById('invSales')?.value||'', billingSource: document.getElementById('billingSource')?.value||'', items: lineItems, subtotal, total, payments, status:'Paid', createdBy: currentUser?.name||'' };
   try {
     showToast('Saving invoice...');
     await window.DB.saveInvoice(invoiceData);
@@ -2424,7 +2424,7 @@ function openVendorModal() { document.getElementById('vendorModal').classList.ad
 async function confirmManualInwardInline() {
   const vendor = document.getElementById('manualVendorName').value;
   const invNum = document.getElementById('manualVendorInv').value;
-  const inDate = document.getElementById('manualInwardDate').value;
+  const inDate = new Date().toISOString().split('T')[0];
   if (!vendor || vendor === '-- Select Vendor --') { showToast('⚠ Select a vendor'); return; }
   if (!invNum) { showToast('⚠ Enter vendor invoice number'); return; }
   const rows = document.querySelectorAll('.inward-item');
