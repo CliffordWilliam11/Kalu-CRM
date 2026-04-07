@@ -1043,21 +1043,21 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <!-- ========== TAB 3: STOCK INWARD ========== -->
 <div id="tab-vendor" class="tab-pane">
 
-  <!-- ROW 1: PDF / Excel Upload - full width -->
+  <!-- ROW 1: Excel Upload - full width -->
   <div class="card" style="margin-bottom:14px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-      <div class="card-title" style="margin-bottom:0;">Upload Supplier Invoice (PDF / Excel)</div>
+      <div class="card-title" style="margin-bottom:0;">Upload Supplier Invoice (Excel)</div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:12px;color:var(--text3);">In production: file is parsed server-side via PDF.js / SheetJS, columns matched to inventory schema, and presented for verification before commit.</span>
+        <span style="font-size:12px;color:var(--text3);">Upload your supplier's Excel file — columns are mapped automatically. Verify entries before saving.</span>
         <span class="badge badge-gold">Auto-populate</span>
       </div>
     </div>
     <div class="upload-zone" onclick="document.getElementById('stockFileInput').click()" id="stockUploadZone">
-      <div class="upload-icon">📋</div>
-      <div class="upload-text">Click or drop supplier PDF / Excel here</div>
-      <div class="upload-hint">Supported: .pdf · .xlsx · .xls — field mapping is automatic, you verify all entries before saving</div>
+      <div class="upload-icon">📊</div>
+      <div class="upload-text">Click or drop Excel file here</div>
+      <div class="upload-hint">Supported: .xlsx · .xls — field mapping is automatic, verify all entries before saving</div>
     </div>
-    <input type="file" id="stockFileInput" accept=".xlsx,.xls,.pdf,application/pdf" onchange="handleStockFile(this)">
+    <input type="file" id="stockFileInput" accept=".xlsx,.xls" onchange="handleStockFile(this)">
     <div id="pdfPreviewArea" style="display:none;margin-top:16px;">
       <div class="alert alert-success">✓ File parsed — verify auto-populated fields below, then confirm to inward stock.</div>
       <div class="table-wrap">
@@ -1686,6 +1686,38 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
 <!-- ========== MODALS ========== -->
 
+<!-- Return Invoice Modal -->
+<div class="modal-backdrop" id="returnInvoiceModal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-title">↩ Return Invoice</div>
+    <div id="returnInvoiceContent">
+      <div style="margin-bottom:12px;padding:10px 14px;background:var(--beige2);border-radius:var(--radius);font-size:13px;">
+        <div style="font-weight:600;" id="returnInvRef">—</div>
+        <div style="color:var(--text2);font-size:12px;" id="returnInvCustomer">—</div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">Select Items to Return</div>
+      <div id="returnItemsList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+      <div class="form-group">
+        <label>Refund Method *</label>
+        <select class="form-control" id="returnRefundMethod">
+          <option value="">— Select —</option>
+          <option value="Cash">Cash</option>
+          <option value="Card">Card</option>
+          <option value="Credit Note">Credit Note</option>
+        </select>
+      </div>
+      <div style="padding:10px 14px;background:var(--beige);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <span style="font-weight:600;">Return Total</span>
+        <span style="font-weight:700;color:var(--danger);font-size:16px;" id="returnTotal">$0.00</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('returnInvoiceModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="processReturn()">Process Return</button>
+    </div>
+  </div>
+</div>
+
 <!-- Customer Card Modal -->
 <div class="modal-backdrop" id="clientCardModal">
   <div class="modal" style="max-width:680px;">
@@ -1703,10 +1735,28 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="grid-2" style="margin-bottom:16px;">
       <div>
         <div class="section-title">Contact</div>
-        <div class="form-group"><label>First Name</label><input type="text" class="form-control" id="ccFirst" value="Clifford"></div>
-        <div class="form-group"><label>Last Name</label><input type="text" class="form-control" id="ccLast" value="B."></div>
-        <div class="form-group"><label>Primary Phone</label><input type="text" class="form-control" id="ccPhone" value="+1 (212) 555-0198"></div>
-        <div class="form-group"><label>Email</label><input type="email" class="form-control" id="ccEmail" value="clifford@email.com"></div>
+        <div class="form-group"><label>First Name</label><input type="text" class="form-control" id="ccFirst"></div>
+        <div class="form-group"><label>Last Name</label><input type="text" class="form-control" id="ccLast"></div>
+        <div class="form-group"><label>Primary Phone</label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <select class="form-control" id="ccPhoneCC" style="width:100px;flex-shrink:0;padding:8px 6px;">
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+91">🇮🇳 +91</option>
+              <option value="+971">🇦🇪 +971</option>
+              <option value="+61">🇦🇺 +61</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+81">🇯🇵 +81</option>
+              <option value="+86">🇨🇳 +86</option>
+              <option value="+65">🇸🇬 +65</option>
+              <option value="+52">🇲🇽 +52</option>
+              <option value="+55">🇧🇷 +55</option>
+            </select>
+            <input type="tel" class="form-control" id="ccPhone" placeholder="Phone number" style="flex:1;">
+          </div>
+        </div>
+        <div class="form-group"><label>Email</label><input type="email" class="form-control" id="ccEmail"></div>
         <div class="form-group"><label>Address</label><input type="text" class="form-control" id="ccAddr" placeholder="—"></div>
       </div>
       <div>
@@ -2097,8 +2147,9 @@ function calcTotal() {
   // extra taxes
   let extraTotal = 0;
   document.querySelectorAll('.extra-tax-row').forEach(row => {
-    const name = row.querySelector('.et-name').value;
-    const rate = parseFloat(row.querySelector('.et-rate').value) || 0;
+    const nameEl = row.querySelector('.et-name');
+    const name = nameEl ? (nameEl.tagName === 'SELECT' ? (nameEl.value||'').split('|')[0] : nameEl.value) : '';
+    const rate = parseFloat(row.querySelector('.et-rate')?.value) || 0;
     const amt = subtotal * (rate / 100);
     row.querySelector('.et-amt').textContent = '$' + amt.toFixed(2);
     extraTotal += amt;
@@ -2152,6 +2203,15 @@ function addItemToInvoice(sku, name, price, cost) {
 function openItemSearch() { document.getElementById('itemSearchModal').classList.add('open'); }
 
 // Extra Tax
+function applyPresetTax(sel, rowId) {
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  const [name, rate] = (sel.value||'').split('|');
+  const rateInput = row.querySelector('.et-rate');
+  if (rateInput) rateInput.value = rate || 0;
+  calcTotal();
+}
+
 function addExtraTax() {
   extraTaxCounter++;
   const id = 'etax-' + extraTaxCounter;
@@ -2159,8 +2219,14 @@ function addExtraTax() {
   const row = document.createElement('div');
   row.className = 'tax-extra-row extra-tax-row'; row.id = id;
   row.innerHTML = `
-    <input type="text" class="form-control et-name" placeholder="Tax / fee name" oninput="calcTotal()" style="font-size:13px;">
-    <input type="number" class="form-control et-rate" placeholder="Rate %" step="0.01" onchange="calcTotal()" style="font-size:13px;">
+    <select class="form-control et-name" onchange="applyPresetTax(this,'${id}')" style="font-size:13px;">
+      <option value="">— Select Tax / Fee —</option>
+      <option value="Finance Fee|4">Finance Fee (4%)</option>
+      <option value="City Tax|1">City Tax (1%)</option>
+      <option value="Service Charge|2">Service Charge (2%)</option>
+      <option value="Insurance Fee|1.5">Insurance Fee (1.5%)</option>
+    </select>
+    <input type="hidden" class="et-rate" value="0">
     <div class="et-amt" style="font-size:13px;color:var(--text2);text-align:right;">$0.00</div>
     <button class="btn btn-danger btn-icon" onclick="document.getElementById('${id}').remove();calcTotal()">✕</button>`;
   container.appendChild(row);
@@ -2207,28 +2273,59 @@ function clearInvoice() {
 }
 
 async function saveInvoice() {
+  // Block if no client selected
+  const custName = document.getElementById('custName')?.value?.trim() || '';
+  const custId   = document.getElementById('selectedClientId')?.value || '';
+  if (!custName || !custId) { showToast('⚠ Please select a client before saving'); return; }
+
   const lineItems = [];
   document.querySelectorAll('.li-row').forEach(row => {
     if (!row.dataset.sku) return;
     const qty  = parseInt(row.querySelector('input.li-qty')?.value) || 1;
     const disc = parseFloat(row.querySelector('input.li-disc')?.value) || 0;
     const list = parseFloat(row.dataset.list) || 0;
-    const sell = list * qty * (1 - disc/100);
-    lineItems.push({ sku: row.dataset.sku, name: row.querySelector('.li-name')?.textContent||'', qty, listPrice: list, discount: disc, sellPrice: parseFloat(sell.toFixed(2)), cost: parseFloat(row.dataset.cost)||0 });
+    // Read sell price from editable input if available, otherwise calculate
+    const sellInput = row.querySelector('input.li-sell');
+    const sell = sellInput ? (parseFloat(sellInput.value) || list * qty * (1 - disc/100)) : list * qty * (1 - disc/100);
+    lineItems.push({ sku: row.dataset.sku, name: row.querySelector('.li-name div:first-child')?.textContent||'', qty, listPrice: list, discount: disc, sellPrice: parseFloat(sell.toFixed(2)), cost: parseFloat(row.dataset.cost)||0 });
   });
   if (lineItems.length === 0) { showToast('⚠ Add at least one item first'); return; }
-  const total    = parseFloat(document.getElementById('invTotal')?.textContent?.replace(/[^0-9.]/g,'')) || 0;
-  const subtotal = parseFloat(document.getElementById('invSubtotal')?.textContent?.replace(/[^0-9.]/g,'')) || 0;
-  const custName = document.getElementById('custName')?.value || 'Walk-in';
-  const custId   = document.getElementById('selectedClientId')?.value || '';
-  const invNum   = 'INV-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5);
+
+  // Recalculate subtotal and total from actual line items
+  const subtotal = lineItems.reduce((s,i) => s + i.sellPrice, 0);
+  const taxRate = 0.095;
+  let extra = 0;
+  document.querySelectorAll('.extra-tax-row').forEach(row => {
+    extra += subtotal * ((parseFloat(row.querySelector('.et-rate')?.value)||0) / 100);
+  });  const total = parseFloat((subtotal + subtotal * taxRate + extra).toFixed(2));
+
+  const invNum = 'INV-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5);
   const payments = [];
   document.querySelectorAll('.pay-row').forEach(r => {
     const mode = r.querySelector('select')?.value;
     const amt  = parseFloat(r.querySelector('input[type=number]')?.value) || 0;
     if (mode && amt > 0) payments.push({mode, amount: amt});
   });
-  const invoiceData = { invoiceNum: invNum, date: new Date().toISOString().split('T')[0], customerName: custName, customerId: custId, salesPerson: document.getElementById('invSales')?.value||'', billingSource: document.getElementById('billingSource')?.value||'', items: lineItems, subtotal, total, payments, status:'Paid', createdBy: currentUser?.name||'' };
+
+  // Block if total payment exceeds invoice total
+  const payTotal = payments.reduce((s,p) => s + p.amount, 0);
+  if (payTotal > total + 0.01) { showToast('⚠ Payment total $' + payTotal.toFixed(2) + ' exceeds invoice total $' + total.toFixed(2)); return; }
+  if (payments.length === 0) { showToast('⚠ Add at least one payment mode'); return; }
+
+  const invoiceData = {
+    invoiceNum: invNum,
+    date: new Date().toISOString().split('T')[0],
+    customerName: custName,
+    customerId: custId,
+    salesPerson: document.getElementById('salesPerson')?.value||'',
+    billingSource: document.getElementById('billingSource')?.value||'',
+    items: lineItems,
+    subtotal: parseFloat(subtotal.toFixed(2)),
+    total,
+    payments,
+    status: 'Paid',
+    createdBy: currentUser?.name||''
+  };
   try {
     showToast('Saving invoice...');
     await window.DB.saveInvoice(invoiceData);
@@ -2251,19 +2348,25 @@ async function saveInvoice() {
       }
     }
     showToast('✓ Invoice ' + invNum + ' saved');
+    // Show print preview BEFORE clearing form, using saved data
+    showInvoicePrintPreview(invoiceData);
     await loadAllData();
-    // Clear the invoice form
+    // Clear the invoice form fully
     clearInvoice();
-    // Reset line items
     document.getElementById('lineItemsContainer').innerHTML = '';
     const empty = document.getElementById('lineItemsEmpty');
     if (empty) empty.style.display = '';
     liCounter = 0;
+    lineItemData = {};
     document.getElementById('invoiceNumBadge').textContent = 'Draft';
-    // Open history to show new invoice
+    document.getElementById('selectedClientCard').style.display = 'none';
+    document.getElementById('clientSearch').value = '';
+    document.querySelectorAll('.pay-row').forEach((r,i) => { if(i>0) r.remove(); else { const inp=r.querySelector('input[type=number]'); if(inp) inp.value=''; } });
+    document.querySelectorAll('.extra-tax-row').forEach(r => r.remove());
+    if (document.getElementById('invNotes')) document.getElementById('invNotes').value = '';
+    // Open history
     const histBody = document.getElementById('body-invhistory');
     if (histBody && !histBody.classList.contains('open')) toggleCollapse('invhistory');
-    openPrintPreview();
   } catch(e) { showToast('⚠ ' + e.message); console.error(e); }
 }
 
@@ -2271,107 +2374,89 @@ function handleIdDoc(input) {
   if (input.files && input.files[0]) document.getElementById('idDocName').textContent = '✓ ' + input.files[0].name + ' attached';
 }
 
-// PRINT PREVIEW
-function openPrintPreview() {
-  // Populate invoice doc from form
-  const name = document.getElementById('custName').value || '—';
-  const addr = document.getElementById('custAddr').value || '—';
-  const phone = document.getElementById('custPhone').value || '—';
-  const dateVal = document.getElementById('invDate').value;
-  const sp = document.getElementById('salesPerson').value;
-  const notes = document.getElementById('invNotes') ? document.getElementById('invNotes').value : '';
+// PRINT PREVIEW — from saved invoice data (called right after save)
+function showInvoicePrintPreview(inv) {
+  const dateFormatted = inv.date ? new Date(inv.date + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+  const timeFormatted = new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true});
 
-  const dateFormatted = dateVal ? new Date(dateVal + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
-  const now = new Date();
-  const timeFormatted = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true});
-
-  document.getElementById('inv-cust-name').textContent = name;
-  document.getElementById('inv-cust-addr').textContent = addr;
-  document.getElementById('inv-cust-phone').textContent = phone;
+  document.getElementById('inv-cust-name').textContent  = inv.customerName || '—';
+  document.getElementById('inv-cust-addr').textContent  = '';
+  document.getElementById('inv-cust-phone').textContent = '';
   document.getElementById('inv-date-display').textContent = 'Date: ' + dateFormatted;
   document.getElementById('inv-time-display').textContent = 'Time: ' + timeFormatted;
-  document.getElementById('inv-sp-display').textContent = 'Sales: ' + sp;
+  document.getElementById('inv-sp-display').textContent  = 'Sales: ' + (inv.salesPerson || '—');
   document.getElementById('inv-footer-text').textContent = companyData.footer;
-  document.getElementById('inv-co-name').textContent = companyData.name;
-  document.getElementById('inv-co-addr').innerHTML = companyData.addr1 + '<br>' + companyData.addr2 + '<br>Tel: ' + companyData.phone + '<br>EIN: ' + companyData.ein + '<br>CA Seller\'s Permit: ' + companyData.sp;
-
-  // Logo
+  document.getElementById('inv-co-name').innerHTML = companyData.name;
+  document.getElementById('inv-co-addr').innerHTML = companyData.addr1 + '<br>' + companyData.addr2 + '<br>Tel: ' + companyData.phone + (companyData.ein ? '<br>EIN: ' + companyData.ein : '') + (companyData.sp ? '<br>CA Seller\'s Permit: ' + companyData.sp : '');
   const logoBox = document.getElementById('inv-co-logo');
-  if (companyData.logoSrc) {
-    logoBox.innerHTML = `<img src="${companyData.logoSrc}" style="max-height:50px;max-width:160px;object-fit:contain;">`;
-  } else { logoBox.innerHTML = ''; }
+  if (logoBox) logoBox.innerHTML = companyData.logoSrc ? `<img src="${companyData.logoSrc}" style="max-height:50px;max-width:160px;object-fit:contain;">` : '';
 
   // Items
   const tbody = document.getElementById('inv-items-body');
-  tbody.innerHTML = '';
-  document.querySelectorAll('[id^="li-"]').forEach(row => {
-    const id = row.id;
-    if (!lineItemData[id]) return;
-    const qty = parseInt(row.querySelector('.li-qty').value) || 1;
-    const disc = parseFloat(row.querySelector('.disc-input').value) || 0;
-    const price = lineItemData[id].price;
-    const sell = price * qty * (1 - disc / 100);
-    const tr = document.createElement('tr');
-    tr.style.borderBottom = '1px solid #E2D9C5';
-    tr.innerHTML = `<td style="padding:8px;">${lineItemData[id].name}<br><span style="font-size:10px;color:#9C8A6E;">${lineItemData[id].sku}</span></td>
-      <td style="padding:8px;text-align:center;">${qty}</td>
-      <td style="padding:8px;text-align:right;">$${price.toFixed(2)}</td>
-      <td style="padding:8px;text-align:center;">${disc}%</td>
-      <td style="padding:8px;text-align:right;font-weight:600;">$${sell.toFixed(2)}</td>`;
-    tbody.appendChild(tr);
-  });
+  tbody.innerHTML = (inv.items||[]).map(it => {
+    const amt = (it.sellPrice || 0).toFixed(2);
+    return `<tr>
+      <td style="padding:7px 4px;">${it.name||'—'}<br><span style="font-size:10px;color:#9C8A6E;">${it.sku||''}</span></td>
+      <td style="text-align:center;padding:7px 4px;">${it.qty||1}</td>
+      <td style="text-align:right;padding:7px 4px;">$${(it.listPrice||0).toFixed(2)}</td>
+      <td style="text-align:center;padding:7px 4px;">${(it.discount||0)}%</td>
+      <td style="text-align:right;padding:7px 4px;font-weight:600;">$${amt}</td>
+    </tr>`;
+  }).join('');
 
   // Totals
-  document.getElementById('inv-sub').textContent = document.getElementById('subtotalAmt').textContent;
-  document.getElementById('inv-tax').textContent = document.getElementById('taxAmt').textContent;
-  document.getElementById('inv-total').textContent = document.getElementById('totalAmt').textContent;
+  const subtotal = inv.subtotal || 0;
+  const total    = inv.total    || 0;
+  if (document.getElementById('invSubtotalDisplay')) document.getElementById('invSubtotalDisplay').textContent = '$' + subtotal.toFixed(2);
+  if (document.getElementById('inv-subtotal'))        document.getElementById('inv-subtotal').textContent = '$' + subtotal.toFixed(2);
+  document.getElementById('inv-total').textContent = '$' + total.toFixed(2);
 
-  const hasFinance = document.getElementById('financeRow').style.display !== 'none';
-  document.getElementById('inv-finance-row').style.display = hasFinance ? 'flex' : 'none';
-  document.getElementById('inv-finance-amt').textContent = document.getElementById('financeAmt').textContent;
+  // Payments
+  const payBody = document.getElementById('inv-payments-body');
+  if (payBody) payBody.innerHTML = (inv.payments||[]).map(p => `<tr><td>${p.mode}</td><td style="text-align:right;">$${(p.amount||0).toFixed(2)}</td></tr>`).join('');
 
-  // Extra taxes
-  const etContainer = document.getElementById('inv-extra-taxes');
-  etContainer.innerHTML = '';
-  document.querySelectorAll('.extra-tax-row').forEach(row => {
-    const name = row.querySelector('.et-name').value || 'Additional Fee';
-    const amt = row.querySelector('.et-amt').textContent;
-    const div = document.createElement('div');
-    div.style.cssText = 'display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #E2D9C5;';
-    div.innerHTML = `<span style="color:#6B5B3E;">${name}</span><span>${amt}</span>`;
-    etContainer.appendChild(div);
-  });
+  // Remove createdBy/ID line from print preview
+  const footer = document.getElementById('inv-created-footer');
+  if (footer) footer.style.display = 'none';
 
-  // Payment modes
-  const paySection = document.getElementById('inv-payment-modes');
-  paySection.innerHTML = '';
-  document.querySelectorAll('[id^="pay-"]').forEach(row => {
-    const sel = row.querySelector('select');
-    const amtInput = row.querySelector('input[type=number]');
-    if (!sel) return;
-    const modeText = sel.options[sel.selectedIndex].text;
-    const amtText = amtInput && amtInput.value ? '$' + parseFloat(amtInput.value).toFixed(2) : '';
-    const div = document.createElement('div');
-    div.style.cssText = 'display:flex;justify-content:space-between;font-size:12px;padding:2px 0;';
-    div.innerHTML = `<span>${modeText}</span><span style="font-weight:500;">${amtText}</span>`;
-    paySection.appendChild(div);
-  });
-
-  // Notes
-  const notesSection = document.getElementById('inv-notes-section');
-  if (notes && notes.trim()) {
-    notesSection.style.display = 'block';
-    document.getElementById('inv-notes-text').textContent = notes;
-  } else { notesSection.style.display = 'none'; }
-
-  document.getElementById('printModal').classList.add('open');
+  document.getElementById('invoicePrintModal').classList.add('open');
 }
 
 // ===== INVENTORY =====
 function changeRows(val) { showToast('Showing up to ' + parseInt(val).toLocaleString() + ' rows'); }
-function viewItemHistory(sku) {
-  document.getElementById('historyModalTitle').textContent = 'Item History — ' + sku;
+function viewItemHistory(id, sku, name) {
+  const title = name ? (name + ' · ' + (sku||'')) : (sku || id);
+  document.getElementById('historyModalTitle').textContent = 'Item History — ' + title;
+  // Find this item in inventory for inward details
+  const item = _inventory.find(i => i.id === id);
+  const tbody = document.querySelector('#historyModal .table-wrap tbody');
+  if (tbody && item) {
+    const inwardDate = item.inwardDate || (item.createdAt?.seconds ? new Date(item.createdAt.seconds*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—');
+    const goldRate = item.goldRate ? '$' + item.goldRate + '/g' : '—';
+    const inwaredBy = item.createdBy || item.inwardedBy || '—';
+    tbody.innerHTML = `
+      <tr>
+        <td>${inwardDate}</td>
+        <td><span class="badge badge-green">Stocked In</span></td>
+        <td>Cost: $${(item.cost||0).toLocaleString()} · ${item.vendorInv||'—'} · Gold rate: ${goldRate}</td>
+        <td>${inwaredBy}</td>
+      </tr>
+      ${item.status==='Sold' ? `<tr><td>${item.soldDate||'—'}</td><td><span class="badge badge-red">Sold</span></td><td>Sell price: $${(item.soldPrice||0).toLocaleString()}</td><td>—</td></tr>` : ''}`;
+  } else if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:16px;">No history available.</td></tr>';
+  }
   document.getElementById('historyModal').classList.add('open');
+}
+
+async function deleteInventoryItemConfirm(id, name) {
+  if (!confirm('Delete ' + name + ' from inventory? This cannot be undone.')) return;
+  try {
+    await window.DB.deleteInventoryItem(id);
+    audit('Inventory Deleted', name);
+    _inventory = _inventory.filter(i => i.id !== id);
+    renderInventoryTable(_inventory);
+    showToast('✓ ' + name + ' deleted');
+  } catch(e) { showToast('⚠ ' + e.message); }
 }
 
 // ===== STOCK INWARD =====
@@ -2518,7 +2603,7 @@ async function confirmManualInwardInline() {
     if (!itemName) { showToast('⚠ Item '+(idx+1)+': enter item name'); err=true; return; }
     if (cost <= 0) { showToast('⚠ Item '+(idx+1)+': enter unit cost'); err=true; return; }
     const sku = category[0].toUpperCase()+'-'+karat+'-'+String(Date.now()).slice(-5);
-    items.push({ sku, itemName, category, karat, weight, size, style, desc, cost, making, margin, listPrice, netGold, qty, vendor, vendorInv: invNum, inwardDate: inDate, createdBy: currentUser?.name||'' });
+    items.push({ sku, itemName, category, karat, weight, size, style, desc, cost, making, margin, listPrice, netGold, goldRate, qty, vendor, vendorInv: invNum, inwardDate: inDate, createdBy: currentUser?.name||'' });
   });
   if (err) return;
   try {
@@ -2645,37 +2730,44 @@ function checkDuplicateClient() {
   const alertEl = document.getElementById('dupAlert');
   const matchBox = document.getElementById('dupMatches');
 
+  if (!alertEl || !matchBox) return;
+
   const phone = normalizePhone(rawPhone);
   const emailLoc = emailLocal(email);
 
+  // Need at least one field and customers loaded
   if (!first && !phone && !emailLoc) { alertEl.style.display='none'; return; }
+  if (!_customers || _customers.length === 0) { alertEl.style.display='none'; return; }
 
   const scored = _customers.map(c => {
-    // Phone: 90% threshold, strip special chars
-    const phoneSim = phone && c.phone ? strSimilarity(phone, c.phone) : 0;
-    const phonePasses = phoneSim >= 0.9;
+    // Normalize both phones — strip leading country code (1, 91, 971 etc) for comparison
+    const cPhone = normalizePhone(c.phone || '');
+    const cPhoneLast10 = cPhone.slice(-10);
+    const phoneLast10  = phone.slice(-10);
+    const phoneSim = phone && cPhone ? Math.max(
+      strSimilarity(phone, cPhone),
+      phoneLast10 && cPhoneLast10 ? strSimilarity(phoneLast10, cPhoneLast10) : 0
+    ) : 0;
+    const phonePasses = phoneSim >= 0.85;
 
-    // Email: 90% match on local part only
-    const emailSim = emailLoc ? strSimilarity(emailLoc, emailLocal(c.email)) : 0;
-    const emailPasses = emailSim >= 0.9;
+    const emailSim = emailLoc ? strSimilarity(emailLoc, emailLocal(c.email||'')) : 0;
+    const emailPasses = emailSim >= 0.85;
 
-    // Name: 85% match on either first OR last independently
-    const firstSim = first ? strSimilarity(first, c.first) : 0;
-    const lastSim  = last  ? strSimilarity(last,  c.last)  : 0;
-    const namePasses = firstSim >= 0.85 || lastSim >= 0.85;
+    const firstSim = first ? strSimilarity(first, c.first||'') : 0;
+    const lastSim  = last  ? strSimilarity(last,  c.last||'')  : 0;
+    const namePasses = firstSim >= 0.75 || lastSim >= 0.75;
 
-    // Score: phone weighted highest (3), email (2), name (1)
     let score = 0, maxScore = 0;
-    if (phone)        { score += phoneSim * 3;   maxScore += 3; }
-    if (emailLoc)     { score += emailSim * 2;   maxScore += 2; }
-    if (first || last){ score += Math.max(firstSim, lastSim); maxScore += 1; }
+    if (phone)         { score += phoneSim * 3;   maxScore += 3; }
+    if (emailLoc)      { score += emailSim * 2;   maxScore += 2; }
+    if (first || last) { score += Math.max(firstSim, lastSim); maxScore += 1; }
 
     const pct = maxScore > 0 ? score / maxScore : 0;
     const anyPasses = phonePasses || emailPasses || namePasses;
     return { client: c, pct, phonePasses, emailPasses, namePasses, anyPasses };
-  }).filter(s => s.anyPasses && s.pct >= 0.7)
+  }).filter(s => s.anyPasses && s.pct >= 0.6)
     .sort((a,b) => b.pct - a.pct)
-    .slice(0, 10);
+    .slice(0, 5);
 
   if (scored.length === 0) { alertEl.style.display='none'; return; }
 
@@ -2906,7 +2998,7 @@ function searchClients(val) {
 function selectClient(id, name, phone, email) {
   document.getElementById('clientSearchResults').style.display = 'none';
   document.getElementById('selectedClientCard').style.display = 'block';
-  document.getElementById('selClientName').textContent = name + ' · ' + id;
+  document.getElementById('selClientName').textContent = name;
   document.getElementById('selClientDetails').textContent = phone + ' · ' + email;
   document.getElementById('clientSearch').value = name;
   // Populate hidden billing fields
@@ -3575,8 +3667,8 @@ function renderInventoryTable(list) {
       <td><span style="color:${dc};font-weight:500;">${days}</span></td>
       <td><span class="badge ${sb}">${item.status||'In Stock'}</span></td>
       <td><div style="display:flex;gap:4px;">
-        <button class="btn btn-outline btn-sm" onclick="viewItemHistory('${item.id}')">History</button>
-        <button class="btn btn-outline btn-sm" onclick="openEditInventoryModal('${item.id}')">Edit</button>
+        <button class="btn btn-outline btn-sm" onclick="viewItemHistory('${item.id}','${item.sku||''}','${(item.itemName||'').replace(/'/g,"\\'")}')">History</button>
+        ${currentUser?.role==='MasterAdmin' ? `<button class="btn btn-outline btn-sm" onclick="openEditInventoryModal('${item.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteInventoryItemConfirm('${item.id}','${(item.itemName||'').replace(/'/g,"\\'")}')">Delete</button>` : ''}
       </div></td>
     </tr>`;
   }).join('');
@@ -3612,7 +3704,10 @@ function renderInvoiceHistory(list) {
       <td style="font-weight:500;color:var(--gold-dark);">$${(inv.total||0).toLocaleString()}</td>
       <td>${payMode}</td>
       <td><span class="badge ${sb}">${inv.status||'Paid'}</span></td>
-      <td><button class="btn btn-outline btn-sm" onclick="viewInvoiceFromHistory('${inv.id}')">View</button></td>
+      <td><div style="display:flex;gap:4px;">
+        <button class="btn btn-outline btn-sm" onclick="viewInvoiceFromHistory('${inv.id}')">View</button>
+        ${(currentUser?.role==='MasterAdmin'||currentUser?.role==='Management') ? `<button class="btn btn-sm" style="color:var(--danger);border:1px solid var(--danger);background:transparent;font-size:11px;padding:4px 8px;border-radius:var(--radius);" onclick="openReturnInvoice('${inv.id}')">↩ Return</button>` : ''}
+      </div></td>
     </tr>`;
   }).join('');
 }
@@ -3987,7 +4082,7 @@ function viewInvoiceFromHistory(id) {
       </div>
     </div>
     ${payments ? `<div style="background:#F5EDD4;padding:10px 14px;border-radius:6px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9C8A6E;margin-bottom:6px;">Payment</div>${payments}</div>` : ''}
-    <div style="margin-top:14px;padding-top:10px;border-top:1px solid #D4C9AE;font-size:10px;color:#9C8A6E;text-align:center;">Created by: ${inv.createdBy||'—'} · ID: ${id}</div>`;
+    <div style="margin-top:14px;padding-top:10px;border-top:1px solid #D4C9AE;font-size:10px;color:#9C8A6E;text-align:center;">${companyData.footer||''}</div>`;
   document.getElementById('viewInvoiceModal').classList.add('open');
 }
 
@@ -4299,13 +4394,36 @@ function populateSalesDropdowns() {
 let _discountPassword = '';
 
 function applyDiscountWithAuth(inputEl, rowId) {
-  if (!_discountPassword) { calcTotal(); return; } // no password set, allow freely
+  if (!_discountPassword) {
+    // No password set — apply freely
+    const row = document.getElementById(rowId);
+    if (row && lineItemData[rowId]) {
+      const disc = parseFloat(inputEl.value) || 0;
+      const qty = parseInt(row.querySelector('.li-qty')?.value) || 1;
+      const price = lineItemData[rowId].price;
+      const sell = price * qty * (1 - disc / 100);
+      const sellInput = row.querySelector('.li-sell');
+      if (sellInput && sellInput.tagName === 'INPUT') sellInput.value = sell.toFixed(2);
+    }
+    calcTotal();
+    return;
+  }
   const pwd = prompt('Enter discount authorization password:');
   if (pwd !== _discountPassword) {
     showToast('⚠ Incorrect discount password');
     inputEl.value = 0;
     calcTotal();
     return;
+  }
+  // Apply discount and update sell price
+  const row = document.getElementById(rowId);
+  if (row && lineItemData[rowId]) {
+    const disc = parseFloat(inputEl.value) || 0;
+    const qty = parseInt(row.querySelector('.li-qty')?.value) || 1;
+    const price = lineItemData[rowId].price;
+    const sell = price * qty * (1 - disc / 100);
+    const sellInput = row.querySelector('.li-sell');
+    if (sellInput && sellInput.tagName === 'INPUT') sellInput.value = sell.toFixed(2);
   }
   calcTotal();
 }
@@ -4684,6 +4802,82 @@ renderFilteredExpenses = function(expArr, title) {
     }
   });
 };
+
+// ===== RETURN INVOICE =====
+let _returnInvoiceData = null;
+
+function openReturnInvoice(id) {
+  const inv = _invoices.find(i => i.id === id);
+  if (!inv) { showToast('Invoice not found'); return; }
+  _returnInvoiceData = inv;
+  document.getElementById('returnInvRef').textContent = (inv.invoiceNum||id) + ' · ' + (inv.date||'');
+  document.getElementById('returnInvCustomer').textContent = inv.customerName || '—';
+  const list = document.getElementById('returnItemsList');
+  list.innerHTML = (inv.items||[]).map((it, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--beige);border-radius:var(--radius);border:1px solid var(--border);">
+      <input type="checkbox" id="ret-item-${i}" style="width:16px;height:16px;accent-color:var(--gold-dark);" onchange="calcReturnTotal()">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">${it.name||'—'}</div>
+        <div style="font-size:11px;color:var(--text3);">SKU: ${it.sku||'—'} · Qty: ${it.qty||1} · Paid: $${(it.sellPrice||0).toFixed(2)}</div>
+      </div>
+      <div style="font-weight:600;color:var(--danger);">$${(it.sellPrice||0).toFixed(2)}</div>
+    </div>`).join('');
+  document.getElementById('returnTotal').textContent = '$0.00';
+  document.getElementById('returnRefundMethod').value = '';
+  document.getElementById('returnInvoiceModal').classList.add('open');
+}
+
+function calcReturnTotal() {
+  if (!_returnInvoiceData) return;
+  let total = 0;
+  (_returnInvoiceData.items||[]).forEach((it, i) => {
+    const cb = document.getElementById('ret-item-' + i);
+    if (cb && cb.checked) total += (it.sellPrice || 0);
+  });
+  document.getElementById('returnTotal').textContent = '$' + total.toFixed(2);
+}
+
+async function processReturn() {
+  if (!_returnInvoiceData) return;
+  const method = document.getElementById('returnRefundMethod').value;
+  if (!method) { showToast('⚠ Select a refund method'); return; }
+  const returnedItems = [];
+  (_returnInvoiceData.items||[]).forEach((it, i) => {
+    const cb = document.getElementById('ret-item-' + i);
+    if (cb && cb.checked) returnedItems.push(it);
+  });
+  if (!returnedItems.length) { showToast('⚠ Select at least one item to return'); return; }
+  const returnTotal = returnedItems.reduce((s,it) => s + (it.sellPrice||0), 0);
+  const returnNum = 'RET-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5);
+  const returnData = {
+    invoiceNum: returnNum, originalInvoice: _returnInvoiceData.invoiceNum||_returnInvoiceData.id,
+    date: new Date().toISOString().split('T')[0], customerName: _returnInvoiceData.customerName||'—',
+    customerId: _returnInvoiceData.customerId||'', items: returnedItems,
+    subtotal: returnTotal, total: returnTotal, refundMethod: method,
+    status: 'Return', createdBy: currentUser?.name||''
+  };
+  try {
+    showToast('Processing return...');
+    await window.DB.saveInvoice(returnData);
+    for (const it of returnedItems) {
+      const inv = _inventory.find(i => i.sku === it.sku);
+      if (inv) await window.DB.updateInventoryItem(inv.id, { status: 'In Stock', soldDate: null, soldPrice: null });
+    }
+    if (_returnInvoiceData.customerId) {
+      const cust = _customers.find(c => c.id === _returnInvoiceData.customerId);
+      if (cust) {
+        const newSpend = Math.max(0, (cust.totalSpend||0) - returnTotal);
+        const newCount = Math.max(0, (cust.invoiceCount||0) - 1);
+        const tier = newSpend>=20000?'Platinum':newSpend>=8000?'Gold':'Silver';
+        await window.DB.updateCustomer(_returnInvoiceData.customerId, { totalSpend: newSpend, invoiceCount: newCount, tier });
+      }
+    }
+    audit('Return Invoice', returnNum + ' · ' + (_returnInvoiceData.customerName||'') + ' · $' + returnTotal.toFixed(2) + ' · ' + method);
+    closeModal('returnInvoiceModal');
+    showToast('✓ Return ' + returnNum + ' processed · Refund via ' + method + ': $' + returnTotal.toFixed(2));
+    await loadAllData();
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
 
 </script>
 </body>
