@@ -556,13 +556,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="login-err" id="loginErr">Incorrect username or password.</div>
     <div class="form-group" style="text-align:left;margin-bottom:14px;">
       <label style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;">Username</label>
-      <input type="text" class="form-control" id="loginUser" placeholder="Enter username" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="text" class="form-control" id="loginUser" placeholder="e.g. masteradmin, sales, management" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <div class="form-group" style="text-align:left;margin-bottom:22px;">
       <label style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;">Password</label>
       <div style="position:relative;">
-        <input type="password" class="form-control" id="loginPass" placeholder="Enter password" autocomplete="current-password" style="padding-right:40px;" onkeydown="if(event.key==='Enter')doLogin()">
-        <span onclick="togglePwdVis('loginPass',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);font-size:16px;">&#128065;</span>
+        <input type="password" class="form-control" id="loginPass" placeholder="Enter password" autocomplete="current-password" style="padding-right:52px;" onkeydown="if(event.key==='Enter')doLogin()">
+        <span onclick="togglePwdVis('loginPass',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--gold-dark);font-size:11px;font-weight:600;background:var(--beige2);padding:2px 7px;border-radius:4px;border:1px solid var(--border);user-select:none;">Show</span>
       </div>
     </div>
     <button class="btn btn-gold" style="width:100%;padding:11px;font-size:14px;font-weight:600;" onclick="doLogin()">Sign In</button>
@@ -2477,6 +2477,10 @@ async function saveInvoice() {
         const sp = (cust.totalSpend||0) + total;
         const cnt= (cust.invoiceCount||0) + 1;
         const tier = calcTier(sp, custId);
+        await window.DB.updateCustomer(custId, { totalSpend: sp, invoiceCount: cnt, tier });
+      }
+    }
+    showToast('✓ Invoice ' + invNum + ' saved');
     // Show print preview BEFORE clearing form, using saved data
     showInvoicePrintPreview(invoiceData);
     await loadAllData();
@@ -3549,8 +3553,10 @@ async function doLogin() {
   window._loginAttempts.push(now);
 
   // Convert username to email for Firebase Auth
-  // Accept either username (e.g. sarah.a) or full email
-  let email = input.includes('@') ? input : input + '@kalujewelry.com';
+  // Accepts full email OR short username. 'admin' is an alias for 'masteradmin'.
+  const USERNAME_ALIASES = { 'admin': 'masteradmin' };
+  const resolved = USERNAME_ALIASES[input] || input;
+  let email = resolved.includes('@') ? resolved : resolved + '@kalujewelry.com';
 
   // Special sandbox check
   const isSandbox = (input === 'test' || email === 'test@kalujewelry.com');
@@ -4694,11 +4700,16 @@ function exportExpensesCSV() {
 }
 
 
-function togglePwdVis(id, eyeEl) {
+function togglePwdVis(id, btn) {
   const inp = document.getElementById(id);
   if (!inp) return;
-  if (inp.type === 'password') { inp.type = 'text'; eyeEl.style.opacity = '0.4'; }
-  else { inp.type = 'password'; eyeEl.style.opacity = '1'; }
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    if (btn) btn.textContent = 'Hide';
+  } else {
+    inp.type = 'password';
+    if (btn) btn.textContent = 'Show';
+  }
 }
 
 
