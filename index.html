@@ -2471,10 +2471,10 @@ async function saveInvoice() {
       }
     }
     showToast('✓ Invoice ' + invNum + ' saved');
-    // Show print preview BEFORE clearing form, using saved data
+    // Show print preview using saved data
     showInvoicePrintPreview(invoiceData);
-    await loadAllData();
-    // Full clear after save
+    // Re-enable button and clear form IMMEDIATELY — don't wait for loadAllData
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save Invoice'; }
     clearInvoice();
     document.getElementById('lineItemsContainer').innerHTML = '';
     const empty = document.getElementById('lineItemsEmpty'); if(empty) empty.style.display = '';
@@ -2491,12 +2491,12 @@ async function saveInvoice() {
     const extraTaxContainer = document.getElementById('extraTaxesContainer'); if(extraTaxContainer) extraTaxContainer.innerHTML = '';
     if (document.getElementById('invNotes')) document.getElementById('invNotes').value = '';
     if (document.getElementById('idDocName')) document.getElementById('idDocName').textContent = '';
-    // Open history
     const histBody = document.getElementById('body-invhistory');
     if (histBody && !histBody.classList.contains('open')) toggleCollapse('invhistory');
+    // Reload data in background — UI is already clear
+    loadAllData().catch(e => console.error('Background reload error:', e));
   } catch(e) {
     showToast('⚠ ' + e.message); console.error(e);
-  } finally {
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save Invoice'; }
   }
 }
@@ -2732,10 +2732,10 @@ function addManualInwardRow() {
     <button class="btn btn-danger btn-icon btn-sm" onclick="removeInwardRow('${id}')">✕ Remove</button>
   </div>
   <div class="inward-grid">
-    <div class="form-group" style="margin-bottom:0;"><label>Category *</label><select class="form-control" style="font-size:13px;" onchange="recalcItem(this)"><option>Ring</option><option>Bracelet</option><option>Necklace</option><option>Earrings</option><option>Pendant</option><option>Bangle</option><option>Anklet</option></select></div>
+    <div class="form-group" style="margin-bottom:0;"><label>Category *</label><select class="form-control" style="font-size:13px;" onchange="recalcItem(this)"><option value="">— Select —</option><option>Ring</option><option>Bracelet</option><option>Necklace</option><option>Earrings</option><option>Pendant</option><option>Bangle</option><option>Anklet</option></select></div>
     <div class="form-group" style="margin-bottom:0;"><label>Style / Type</label><input type="text" class="form-control" placeholder="e.g. Solitaire" style="font-size:13px;"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Item Name *</label><input type="text" class="form-control" placeholder="Full name" style="font-size:13px;"></div>
-    <div class="form-group" style="margin-bottom:0;"><label>Karat *</label><select class="form-control inward-karat" style="font-size:13px;" onchange="recalcItem(this)"><option>10K</option><option selected>14K</option><option>18K</option><option>22K</option><option>925</option><option>Platinum</option></select></div>
+    <div class="form-group" style="margin-bottom:0;"><label>Karat *</label><select class="form-control inward-karat" style="font-size:13px;" onchange="recalcItem(this)"><option value="">— Select —</option><option>10K</option><option>14K</option><option>18K</option><option>22K</option><option>925</option><option>Platinum</option></select></div>
     <div class="form-group" style="margin-bottom:0;"><label>Weight (g)</label><input type="number" class="form-control inward-weight" placeholder="0.00" step="0.01" style="font-size:13px;" oninput="recalcItem(this)"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Size / Length</label><input type="text" class="form-control" placeholder="e.g. 7, 18in" style="font-size:13px;"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Short Description</label><input type="text" class="form-control" placeholder="Brief note" style="font-size:13px;"></div>
@@ -2744,10 +2744,9 @@ function addManualInwardRow() {
     <div class="form-group" style="margin-bottom:0;"><label>Making Charges % <span style="font-size:10px;color:var(--text3);">(auto)</span></label><input type="number" class="form-control inward-making" placeholder="—" step="0.01" style="font-size:13px;background:var(--beige2);" readonly tabindex="-1"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Margin % <span style="font-size:10px;color:var(--text3);">(manual)</span></label><input type="number" class="form-control inward-margin" placeholder="0" step="0.01" value="0" style="font-size:13px;" oninput="recalcItem(this)"></div>
     <div class="form-group" style="margin-bottom:0;"><label>List Price ($) <span style="font-size:10px;color:var(--text3);">(auto)</span></label><input type="number" class="form-control inward-list" placeholder="—" step="0.01" style="font-size:13px;background:var(--beige2);font-weight:600;" readonly tabindex="-1"></div>
-    <div class="form-group" style="margin-bottom:0;"><label>Qty</label><input type="number" class="form-control" value="1" min="1" style="font-size:13px;"></div>
+    <div class="form-group" style="margin-bottom:0;"><label>Qty</label><input type="number" class="form-control" placeholder="1" min="1" style="font-size:13px;"></div>
   </div>`;
   container.appendChild(div);
-  // Renumber
   renumberInwardRows();
 }
 
