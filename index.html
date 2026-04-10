@@ -3265,7 +3265,7 @@ function filterClients(val) {
       (c.phone||'').includes(val) ||
       (c.email||'').toLowerCase().includes(val) ||
       (c.id||'').toLowerCase().includes(val);
-    const matchTier   = !tierF   || (c.tier||'Silver') === tierF;
+    const matchTier   = !tierF   || calcTier(c.totalSpend||0, c.id) === tierF;
     const matchSource = !sourceF || (c.source||'') === sourceF;
     return matchText && matchTier && matchSource;
   });
@@ -3769,7 +3769,7 @@ async function saveTierConfig() {
     await window.DB.saveSettings({ tierThresholds: tiers });
     _settings.tierThresholds = tiers;
     showToast('✓ Tier thresholds saved & applied');
-    // Update the hint text on Customers tab immediately
+    // Update hint text immediately
     const hint = document.getElementById('tierHintText');
     if (hint) {
       const gMin = tiers.gold?.min ?? 5000;
@@ -3777,6 +3777,8 @@ async function saveTierConfig() {
       const pMin = (tiers.platinum?.min ?? 15000).toLocaleString();
       hint.innerHTML = `Tier thresholds: <strong style="color:var(--text2);">Silver</strong> = $0–$${(gMin-1).toLocaleString()} · <strong style="color:var(--gold-dark);">Gold</strong> = $${gMin.toLocaleString()}–$${gMax} · <strong style="color:#5A3E8A;">Platinum</strong> = $${pMin}+ (configurable in Admin → Custom Configurations)`;
     }
+    // Re-run the active filter so badges and filter results update immediately — no click needed
+    filterClients(document.getElementById('clientSearchInput')?.value || '');
   } catch(e) { showToast('⚠ ' + e.message); }
 }
 
