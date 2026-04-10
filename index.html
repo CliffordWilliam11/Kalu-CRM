@@ -2348,6 +2348,9 @@ function clearInvoice() {
 
 async function saveInvoice() {
   if (!hasPermission('createInvoice')) { showToast('⚠ You don\'t have permission to create invoices'); return; }
+  const saveBtn = document.querySelector('button[onclick="saveInvoice()"]');
+  if (saveBtn && saveBtn.disabled) return;
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Saving...'; }
   let custName = '';
   let custId   = document.getElementById('selectedClientId')?.value || '';
   const clientMode = !custId; // no selected client = use new client form
@@ -2491,7 +2494,11 @@ async function saveInvoice() {
     // Open history
     const histBody = document.getElementById('body-invhistory');
     if (histBody && !histBody.classList.contains('open')) toggleCollapse('invhistory');
-  } catch(e) { showToast('⚠ ' + e.message); console.error(e); }
+  } catch(e) {
+    showToast('⚠ ' + e.message); console.error(e);
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save Invoice'; }
+  }
 }
 
 function handleIdDoc(input) {
@@ -2800,7 +2807,7 @@ async function confirmManualInwardInline() {
     }
     audit('Inventory Added', items.length + ' item(s) from ' + vendor);
     showToast('✓ '+items.length+' item(s) added to inventory');
-    document.getElementById('manualVendorName').value = '-- Select Vendor --';
+    document.getElementById('manualVendorName').selectedIndex = 0;
     document.getElementById('manualVendorInv').value = '';
     document.getElementById('manualInwardRowsContainer').innerHTML = '';
     mirCounter = 0; addManualInwardRow();
@@ -3984,7 +3991,8 @@ function renderCustomerTable(list) {
   if (!list.length) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text3);padding:28px;">No customers yet — add your first client above.</td></tr>'; }
   else {
     tbody.innerHTML = list.map(c => {
-      const tier = c.tier || 'Silver';
+      // Always calculate tier live from current thresholds — never trust stale stored value
+      const tier = calcTier(c.totalSpend || 0, c.id);
       const tc = tier==='Platinum'?'badge-blue':tier==='Gold'?'badge-gold':'badge-gray';
       const units = unitsMap[c.id] || 0;
       return `<tr>
