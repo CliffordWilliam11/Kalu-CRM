@@ -709,11 +709,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="collapse-body" id="body-clientsearch">
       <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
         <div style="flex:1;min-width:200px;position:relative;">
-          <input type="text" class="form-control" placeholder="Search by name, phone, Client ID..." style="padding-right:34px;" oninput="filterClients(this.value)">
+          <input type="text" id="clientSearchInput" class="form-control" placeholder="Search by name, phone, Client ID..." style="padding-right:34px;" oninput="filterClients(this.value)">
           <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text3);">🔍</span>
         </div>
-        <select class="form-control" style="width:140px;" id="clientTierFilter" onchange="filterClients(document.querySelector('#body-clientsearch input[type=text]').value)"><option value="">All Tiers</option><option>Platinum</option><option>Gold</option><option>Silver</option></select>
-        <select class="form-control" style="width:140px;" id="clientSourceFilter" onchange="filterClients(document.querySelector('#body-clientsearch input[type=text]').value)"><option value="">All Sources</option><option>Walk-in</option><option>Instagram</option><option>Facebook</option><option>Google</option><option>Events</option><option>Referral</option></select>
+        <select class="form-control" style="width:140px;" id="clientTierFilter" onchange="filterClients(document.getElementById('clientSearchInput')?.value||'')"><option value="">All Tiers</option><option>Platinum</option><option>Gold</option><option>Silver</option></select>
+        <select class="form-control" style="width:140px;" id="clientSourceFilter" onchange="filterClients(document.getElementById('clientSearchInput')?.value||'')"><option value="">All Sources</option><option>Walk-in</option><option>Instagram</option><option>Facebook</option><option>Google</option><option>Events</option><option>Referral</option></select>
         <button class="btn btn-outline btn-sm" data-perm="exportData" onclick="exportClients()">↓ Export CSV</button>
       </div>
       <div class="table-wrap">
@@ -761,15 +761,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
     <div class="collapse-body open" id="body-newinvoice">
 
-      <!-- CLIENT SELECTOR -->
+      <!-- CLIENT SELECTOR — existing client only -->
       <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
-        <button class="btn btn-gold btn-sm" id="btnNewClient" onclick="toggleClientMode('new')" style="min-width:130px;">+ New Client</button>
-        <button class="btn btn-outline btn-sm" id="btnExistClient" onclick="toggleClientMode('exist')" style="min-width:160px;">Select Existing Client</button>
-        <div style="font-size:12px;color:var(--text3);">Client info will be saved to the Customers tab</div>
+        <div style="font-size:12px;color:var(--text3);">Add a new client first in the <strong>Customers</strong> tab, then select them here.</div>
       </div>
 
-      <!-- NEW CLIENT INLINE FORM -->
-      <div id="clientNewForm">
+      <!-- NEW CLIENT INLINE FORM — hidden, kept for saveInvoice fallback -->
+      <div id="clientNewForm" style="display:none;">
         <div style="background:var(--gold-pale);border:1px solid var(--gold-light);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
           <div class="grid-3" style="margin-bottom:10px;">
             <div class="form-group" style="margin-bottom:0;"><label>First Name *</label><input type="text" class="form-control" id="custFirst" placeholder="First name"></div>
@@ -805,13 +803,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
               <select class="form-control" id="custSales"><option value="">— Select —</option></select>
             </div>
           </div>
-          <!-- hidden custName for backward compat with saveInvoice -->
           <input type="hidden" id="custName">
         </div>
       </div>
 
-      <!-- EXISTING CLIENT SEARCH -->
-      <div id="clientExistForm" style="display:none;">
+      <!-- EXISTING CLIENT SEARCH — always shown -->
+      <div id="clientExistForm">
         <div style="background:var(--gold-pale);border:1px solid var(--gold-light);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
           <label style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">Search by Name / Phone / Client ID</label>
           <div style="position:relative;margin-bottom:10px;">
@@ -1007,7 +1004,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
       <select class="form-control" style="width:120px;" id="invKaratFilter" onchange="applyInventoryFilters()"><option value="">All Karats</option><option>10K</option><option>14K</option><option>18K</option><option>22K</option><option>925</option><option>Platinum</option></select>
       <select class="form-control" style="width:130px;" id="invCatFilter" onchange="applyInventoryFilters()"><option value="">All Categories</option><option>Ring</option><option>Bracelet</option><option>Necklace</option><option>Earrings</option><option>Pendant</option><option>Bangle</option><option>Anklet</option></select>
-      <select class="form-control" style="width:120px;" id="invStatusFilter" onchange="applyInventoryFilters()"><option value="">All Status</option><option>In Stock</option><option>Sold</option><option>Reserved</option></select>
+      <select class="form-control" style="width:120px;" id="invStatusFilter" onchange="applyInventoryFilters()"><option value="">All Status</option><option selected>In Stock</option><option>Sold</option><option>Reserved</option></select>
       <div style="display:flex;align-items:center;gap:6px;">
         <label style="font-size:12px;color:var(--text2);white-space:nowrap;">Show rows:</label>
         <select class="form-control" style="width:90px;" id="rowsPerPage" onchange="changeRows(this.value)">
@@ -1138,7 +1135,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
           <div class="form-group" style="margin-bottom:0;"><label>Category *</label><select class="form-control" style="font-size:13px;" onchange="recalcItem(this)"><option>Ring</option><option>Bracelet</option><option>Necklace</option><option>Earrings</option><option>Pendant</option><option>Bangle</option><option>Anklet</option></select></div>
           <div class="form-group" style="margin-bottom:0;"><label>Style / Type</label><input type="text" class="form-control" placeholder="e.g. Solitaire, Hoop" style="font-size:13px;"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Item Name *</label><input type="text" class="form-control" placeholder="Full name" style="font-size:13px;"></div>
-          <div class="form-group" style="margin-bottom:0;"><label>Karat *</label><select class="form-control inward-karat" style="font-size:13px;" onchange="recalcItem(this)"><option>10K</option><option selected>14K</option><option>18K</option><option>22K</option><option>24K</option><option>925</option><option>Platinum</option></select></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Karat *</label><select class="form-control inward-karat" style="font-size:13px;" onchange="recalcItem(this)"><option>10K</option><option selected>14K</option><option>18K</option><option>22K</option><option>925</option><option>Platinum</option></select></div>
           <div class="form-group" style="margin-bottom:0;"><label>Weight (g)</label><input type="number" class="form-control inward-weight" placeholder="0.00" step="0.01" style="font-size:13px;" oninput="recalcItem(this)"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Size / Length</label><input type="text" class="form-control" placeholder="e.g. 7, 18in" style="font-size:13px;"></div>
           <div class="form-group" style="margin-bottom:0;"><label>Short Description</label><input type="text" class="form-control" placeholder="Brief note" style="font-size:13px;"></div>
@@ -1896,7 +1893,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
       <div class="form-group" style="margin-bottom:0;"><label>Karat</label>
         <select class="form-control" id="editInvKarat">
-          <option>10K</option><option>14K</option><option>18K</option><option>22K</option><option>24K</option><option>925</option><option>Platinum</option>
+          <option>10K</option><option>14K</option><option>18K</option><option>22K</option><option>925</option><option>Platinum</option>
         </select>
       </div>
     </div>
@@ -2403,10 +2400,15 @@ async function saveInvoice() {
   // Recalculate subtotal and total from actual line items
   const subtotal = lineItems.reduce((s,i) => s + i.sellPrice, 0);
   const taxRate = (_settings?.salesTaxRate ?? 9.5) / 100;
-  let extra = 0;
+  // Collect extra taxes for saving and display
+  const extraTaxes = [];
   document.querySelectorAll('.extra-tax-row').forEach(row => {
-    extra += subtotal * ((parseFloat(row.querySelector('.et-rate')?.value)||0) / 100);
-  });  const total = parseFloat((subtotal + subtotal * taxRate + extra).toFixed(2));
+    const name = row.querySelector('.et-name')?.value || '';
+    const rate = parseFloat(row.querySelector('.et-rate')?.value) || 0;
+    if (name && rate > 0) extraTaxes.push({ name, rate, amount: parseFloat((subtotal * rate / 100).toFixed(2)) });
+  });
+  const salesTaxAmt = parseFloat((subtotal * taxRate).toFixed(2));
+  const total = parseFloat((subtotal + salesTaxAmt + extraTaxes.reduce((s,t) => s+t.amount, 0)).toFixed(2));
 
   // Sequential invoice number
   const year = new Date().getFullYear();
@@ -2434,6 +2436,8 @@ async function saveInvoice() {
     billingSource: document.getElementById('billingSource')?.value||'',
     items: lineItems,
     subtotal: parseFloat(subtotal.toFixed(2)),
+    tax: salesTaxAmt,
+    extraTaxes,
     total,
     payments,
     status: 'Paid',
@@ -2467,22 +2471,23 @@ async function saveInvoice() {
     // Show print preview BEFORE clearing form, using saved data
     showInvoicePrintPreview(invoiceData);
     await loadAllData();
-    // Clear the invoice form fully
+    // Full clear after save
     clearInvoice();
     document.getElementById('lineItemsContainer').innerHTML = '';
-    const empty = document.getElementById('lineItemsEmpty');
-    if (empty) empty.style.display = '';
-    liCounter = 0;
-    lineItemData = {};
+    const empty = document.getElementById('lineItemsEmpty'); if(empty) empty.style.display = '';
+    liCounter = 0; lineItemData = {};
     const nextBadgeNum = (_settings.lastInvoiceNum || 0) + 1;
     document.getElementById('invoiceNumBadge').textContent = 'INV-' + new Date().getFullYear() + '-' + String(nextBadgeNum).padStart(4,'0');
     document.getElementById('selectedClientCard').style.display = 'none';
     document.getElementById('clientSearch').value = '';
-    ['custFirst','custLast','custPhone','custEmail','custAddr','custDOB','custAnniv','custNotes','custName'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-    const src = document.getElementById('custSource'); if(src) src.value = '';
-    document.querySelectorAll('.pay-row').forEach((r,i) => { if(i>0) r.remove(); else { const inp=r.querySelector('input[type=number]'); if(inp) inp.value=''; } });
+    const selId = document.getElementById('selectedClientId'); if(selId) selId.value = '';
+    const sp = document.getElementById('salesPerson'); if(sp) sp.value = '';
+    const bs = document.getElementById('billingSource'); if(bs) bs.value = '';
+    document.querySelectorAll('.pay-row').forEach((r,i) => { if(i>0) r.remove(); else { const inp=r.querySelector('input[type=number]'); if(inp) inp.value=''; const sel=r.querySelector('select'); if(sel) sel.value=''; } });
     document.querySelectorAll('.extra-tax-row').forEach(r => r.remove());
+    const extraTaxContainer = document.getElementById('extraTaxesContainer'); if(extraTaxContainer) extraTaxContainer.innerHTML = '';
     if (document.getElementById('invNotes')) document.getElementById('invNotes').value = '';
+    if (document.getElementById('idDocName')) document.getElementById('idDocName').textContent = '';
     // Open history
     const histBody = document.getElementById('body-invhistory');
     if (histBody && !histBody.classList.contains('open')) toggleCollapse('invhistory');
@@ -2532,6 +2537,16 @@ function showInvoicePrintPreview(inv) {
   if (document.getElementById('inv-sub'))       document.getElementById('inv-sub').textContent = '$' + subtotal.toFixed(2);
   if (document.getElementById('inv-tax'))       document.getElementById('inv-tax').textContent = '$' + taxAmt.toFixed(2);
   if (document.getElementById('inv-tax-label')) document.getElementById('inv-tax-label').textContent = 'Sales Tax ' + taxPct + '%';
+  // Render extra tax rows
+  const extraContainer = document.getElementById('inv-extra-taxes');
+  if (extraContainer) {
+    extraContainer.innerHTML = (inv.extraTaxes || []).map(t =>
+      `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #E2D9C5;">
+        <span style="color:#6B5B3E;">${t.name}${t.rate ? ' ' + t.rate + '%' : ''}</span>
+        <span>$${(t.amount||0).toFixed(2)}</span>
+      </div>`
+    ).join('');
+  }
   document.getElementById('inv-total').textContent = '$' + total.toFixed(2);
 
   // Payments — render into inv-payment-modes div
@@ -2545,7 +2560,13 @@ function showInvoicePrintPreview(inv) {
 }
 
 // ===== INVENTORY =====
-function changeRows(val) { showToast('Showing up to ' + parseInt(val).toLocaleString() + ' rows'); }
+function changeRows(val) {
+  const n = parseInt(val) || 100;
+  window._invTablePageSize = n;
+  window._invTablePage = 1;
+  applyInventoryFilters();
+  showToast('Showing up to ' + n.toLocaleString() + ' rows per page');
+}
 function viewItemHistory(id, sku, name) {
   const title = name ? (name + ' · ' + (sku||'')) : (sku || id);
   document.getElementById('historyModalTitle').textContent = 'Item History — ' + title;
@@ -2619,7 +2640,7 @@ function handleStockFile(input) {
               desc=findVal(row,FIELDS.desc)||'', cost=parseFloat(findVal(row,FIELDS.cost))||'',
               list=parseFloat(findVal(row,FIELDS.listPrice))||'', qty=parseInt(findVal(row,FIELDS.qty))||1;
         const cats=['Ring','Bracelet','Necklace','Earrings','Pendant','Bangle','Anklet'].map(c=>`<option${c===cat?' selected':''}>${c}</option>`).join('');
-        const kts=['10K','14K','18K','22K','24K','925','Platinum'].map(k=>`<option${k===karat?' selected':''}>${k}</option>`).join('');
+        const kts=['10K','14K','18K','22K','925','Platinum'].map(k=>`<option${k===karat?' selected':''}>${k}</option>`).join('');
         return `<tr>
           <td><input type="text" class="form-control" value="${name}" style="min-width:130px;padding:5px 8px;font-size:12px;"></td>
           <td><select class="form-control" style="padding:5px 8px;min-width:90px;font-size:12px;">${cats}</select></td>
@@ -2707,7 +2728,7 @@ function addManualInwardRow() {
     <div class="form-group" style="margin-bottom:0;"><label>Category *</label><select class="form-control" style="font-size:13px;" onchange="recalcItem(this)"><option>Ring</option><option>Bracelet</option><option>Necklace</option><option>Earrings</option><option>Pendant</option><option>Bangle</option><option>Anklet</option></select></div>
     <div class="form-group" style="margin-bottom:0;"><label>Style / Type</label><input type="text" class="form-control" placeholder="e.g. Solitaire" style="font-size:13px;"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Item Name *</label><input type="text" class="form-control" placeholder="Full name" style="font-size:13px;"></div>
-    <div class="form-group" style="margin-bottom:0;"><label>Karat *</label><select class="form-control inward-karat" style="font-size:13px;" onchange="recalcItem(this)"><option>10K</option><option selected>14K</option><option>18K</option><option>22K</option><option>24K</option><option>925</option><option>Platinum</option></select></div>
+    <div class="form-group" style="margin-bottom:0;"><label>Karat *</label><select class="form-control inward-karat" style="font-size:13px;" onchange="recalcItem(this)"><option>10K</option><option selected>14K</option><option>18K</option><option>22K</option><option>925</option><option>Platinum</option></select></div>
     <div class="form-group" style="margin-bottom:0;"><label>Weight (g)</label><input type="number" class="form-control inward-weight" placeholder="0.00" step="0.01" style="font-size:13px;" oninput="recalcItem(this)"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Size / Length</label><input type="text" class="form-control" placeholder="e.g. 7, 18in" style="font-size:13px;"></div>
     <div class="form-group" style="margin-bottom:0;"><label>Short Description</label><input type="text" class="form-control" placeholder="Brief note" style="font-size:13px;"></div>
@@ -2740,6 +2761,9 @@ function openVendorModal() { document.getElementById('vendorModal').classList.ad
 
 async function confirmManualInwardInline() {
   if (!hasPermission('addStock')) { showToast('⚠ You don\'t have permission to add stock'); return; }
+  const saveBtn = document.querySelector('button[onclick="confirmManualInwardInline()"]');
+  if (saveBtn && saveBtn.disabled) return; // prevent double-press
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
   const vendor = document.getElementById('manualVendorName')?.value || '';
   const invNum = document.getElementById('manualVendorInv').value;
   const inDate = new Date().toISOString().split('T')[0];
@@ -2768,7 +2792,7 @@ async function confirmManualInwardInline() {
     const goldRate = getInwardRate(karat);
     items.push({ sku, itemName, category, karat, weight, size, style, desc, cost, making, margin, listPrice, netGold, goldRate, qty, vendor, vendorInv: invNum, inwardDate: inDate, createdBy: currentUser?.name||'' });
   });
-  if (err) return;
+  if (err) { if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '✓ Save to Inventory'; } return; }
   try {
     showToast('Saving '+items.length+' item(s)...');
     for (const item of items) {
@@ -2782,6 +2806,7 @@ async function confirmManualInwardInline() {
     mirCounter = 0; addManualInwardRow();
     await loadInventory();
   } catch(e) { showToast('⚠ ' + e.message); console.error(e); }
+  finally { if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '✓ Save to Inventory'; } }
 }
 
 // ===== STOCK INWARD PRICING CALCULATIONS =====
@@ -3242,21 +3267,16 @@ function filterClients(val) {
 
 // ===== BILLING CLIENT MODE =====
 function toggleClientMode(mode) {
-  const newForm = document.getElementById('clientNewForm');
+  const newForm   = document.getElementById('clientNewForm');
   const existForm = document.getElementById('clientExistForm');
-  const btnNew = document.getElementById('btnNewClient');
-  const btnExist = document.getElementById('btnExistClient');
   if (mode === 'new') {
-    newForm.style.display = 'block';
-    existForm.style.display = 'none';
-    btnNew.className = 'btn btn-gold btn-sm';
-    btnExist.className = 'btn btn-outline btn-sm';
+    if (newForm)   newForm.style.display   = 'block';
+    if (existForm) existForm.style.display = 'none';
   } else {
-    newForm.style.display = 'none';
-    existForm.style.display = 'block';
-    btnNew.className = 'btn btn-outline btn-sm';
-    btnExist.className = 'btn btn-gold btn-sm';
-    document.getElementById('clientSearchResults').style.display = 'block';
+    if (newForm)   newForm.style.display   = 'none';
+    if (existForm) existForm.style.display = 'block';
+    const sr = document.getElementById('clientSearchResults');
+    if (sr) sr.style.display = 'block';
   }
 }
 
@@ -3642,7 +3662,7 @@ async function loadCustomers() {
 
 async function loadInventory() {
   _inventory = await window.DB.getInventory();
-  renderInventoryTable(_inventory);
+  applyInventoryFilters();
   refreshRecentInward();
 }
 
@@ -3742,6 +3762,14 @@ async function saveTierConfig() {
     await window.DB.saveSettings({ tierThresholds: tiers });
     _settings.tierThresholds = tiers;
     showToast('✓ Tier thresholds saved & applied');
+    // Update the hint text on Customers tab immediately
+    const hint = document.getElementById('tierHintText');
+    if (hint) {
+      const gMin = tiers.gold?.min ?? 5000;
+      const gMax = (tiers.gold?.max ?? 14999).toLocaleString();
+      const pMin = (tiers.platinum?.min ?? 15000).toLocaleString();
+      hint.innerHTML = `Tier thresholds: <strong style="color:var(--text2);">Silver</strong> = $0–$${(gMin-1).toLocaleString()} · <strong style="color:var(--gold-dark);">Gold</strong> = $${gMin.toLocaleString()}–$${gMax} · <strong style="color:#5A3E8A;">Platinum</strong> = $${pMin}+ (configurable in Admin → Custom Configurations)`;
+    }
   } catch(e) { showToast('⚠ ' + e.message); }
 }
 
@@ -4000,8 +4028,9 @@ function renderInventoryTable(list) {
     return;
   }
   const now = Date.now();
-  const page = window._invTablePage || 1;
-  const pageItems = list.slice((page-1)*TBL_PAGE_SIZE, page*TBL_PAGE_SIZE);
+  const page     = window._invTablePage || 1;
+  const pageSize = window._invTablePageSize || TBL_PAGE_SIZE;
+  const pageItems = list.slice((page-1)*pageSize, page*pageSize);
   tbody.innerHTML = pageItems.map(item => {
     const days = item.inwardDate ? Math.floor((now - new Date(item.inwardDate).getTime()) / 86400000) : (item.createdAt?.seconds ? Math.floor((now - item.createdAt.seconds * 1000) / 86400000) : '—');
     const dc = typeof days === 'number' ? (days > 90 ? 'var(--danger)' : days > 60 ? 'var(--warning)' : 'var(--success)') : 'var(--text3)';
@@ -5579,7 +5608,8 @@ function goInvHistPage(p) { window._invHistoryPage = p; filterInvoiceHistory(); 
 function renderInvTablePager(list, current) {
   const pager = document.getElementById('invTablePager');
   if (!pager) return;
-  const total = Math.ceil(list.length / TBL_PAGE_SIZE);
+  const pageSize = window._invTablePageSize || TBL_PAGE_SIZE;
+  const total = Math.ceil(list.length / pageSize);
   if (total <= 1) { pager.innerHTML = ''; return; }
   let html = `<button class="btn btn-outline btn-sm" ${current===1?'disabled':''} onclick="goInvTablePage(${current-1})">← Prev</button>`;
   for (let p = 1; p <= total; p++) {
