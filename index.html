@@ -3543,6 +3543,44 @@ let _settings  = {};
 const USERS_DB = {}; // populated at runtime from Firestore userProfiles
 let currentUser = null;
 
+// ── Auto-restore session on page load ──
+// Firebase Auth persists the session locally. On page refresh, onAuthStateChanged
+// fires with the existing user so we never need to re-enter credentials.
+(function initAuthListener() {
+  if (window._firebaseOffline || typeof firebase === 'undefined') return;
+  try {
+    firebase.auth().onAuthStateChanged(async (fbUser) => {
+      // Already logged in via doLogin — skip
+      if (currentUser) return;
+      if (!fbUser) return; // No session — stay on login screen
+      try {
+        let profile = await window.DB.getUserProfile(fbUser.uid);
+        if (!profile) {
+          profile = { role: 'MasterAdmin', name: 'MasterAdmin', username: 'masteradmin', sandbox: false };
+        }
+        currentUser = { uid: fbUser.uid, email: fbUser.email, username: profile.username || fbUser.email.split('@')[0], ...profile };
+        USERS_DB[currentUser.username] = { role: profile.role, name: profile.name };
+        document.getElementById('loginScreen').style.display = 'none';
+        const initials = (currentUser.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        const avatarEl = document.querySelector('.topbar div:last-child div:last-child');
+        if (avatarEl) avatarEl.textContent = initials;
+        if (currentUser.role === 'MasterAdmin') {
+          const sel = document.getElementById('permUserSelect');
+          if (sel) await refreshPermUserDropdown().catch(()=>{});
+        }
+        startInactivityWatcher();
+        await loadAllData();
+        applyPermissions(true);
+        initReconciliation();
+      } catch(e) {
+        console.error('Session restore error:', e);
+      }
+    });
+  } catch(e) {
+    console.error('onAuthStateChanged setup error:', e);
+  }
+})();
+
 // Map email → username for display (no passwords)
 const EMAIL_TO_USERNAME = {
   'masteradmin@kalujewelry.com': 'masteradmin',
