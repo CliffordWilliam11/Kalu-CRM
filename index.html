@@ -2343,7 +2343,11 @@ function clearInvoice() {
   document.querySelectorAll('.pay-row').forEach((r,i) => { if(i>0) r.remove(); else { const inp=r.querySelector('input[type=number]'); if(inp) inp.value=''; } });
   document.querySelectorAll('.extra-tax-row').forEach(r => r.remove());
   const invNotes = document.getElementById('invNotes'); if(invNotes) invNotes.value = '';
-  showToast('Invoice cleared');
+  // Reset totals display
+  const sub = document.getElementById('subtotalAmt'); if(sub) sub.textContent = '$0.00';
+  const tax = document.getElementById('taxAmt');      if(tax) tax.textContent = '$0.00';
+  const tot = document.getElementById('totalAmt');    if(tot) tot.textContent = '$0.00';
+  const extraTaxCont = document.getElementById('extraTaxesContainer'); if(extraTaxCont) extraTaxCont.innerHTML = '';
 }
 
 async function saveInvoice() {
@@ -2473,30 +2477,11 @@ async function saveInvoice() {
     showToast('✓ Invoice ' + invNum + ' saved');
     // Show print preview using saved data
     showInvoicePrintPreview(invoiceData);
-    // Re-enable button and clear form IMMEDIATELY — don't wait for loadAllData
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save Invoice'; }
-    clearInvoice();
-    document.getElementById('lineItemsContainer').innerHTML = '';
-    const empty = document.getElementById('lineItemsEmpty'); if(empty) empty.style.display = '';
-    liCounter = 0; lineItemData = {};
-    const nextBadgeNum = (_settings.lastInvoiceNum || 0) + 1;
-    document.getElementById('invoiceNumBadge').textContent = 'INV-' + new Date().getFullYear() + '-' + String(nextBadgeNum).padStart(4,'0');
-    document.getElementById('selectedClientCard').style.display = 'none';
-    document.getElementById('clientSearch').value = '';
-    const selId = document.getElementById('selectedClientId'); if(selId) selId.value = '';
-    const sp = document.getElementById('salesPerson'); if(sp) sp.value = '';
-    const bs = document.getElementById('billingSource'); if(bs) bs.value = '';
-    document.querySelectorAll('.pay-row').forEach((r,i) => { if(i>0) r.remove(); else { const inp=r.querySelector('input[type=number]'); if(inp) inp.value=''; const sel=r.querySelector('select'); if(sel) sel.value=''; } });
-    document.querySelectorAll('.extra-tax-row').forEach(r => r.remove());
-    const extraTaxContainer = document.getElementById('extraTaxesContainer'); if(extraTaxContainer) extraTaxContainer.innerHTML = '';
-    if (document.getElementById('invNotes')) document.getElementById('invNotes').value = '';
-    if (document.getElementById('idDocName')) document.getElementById('idDocName').textContent = '';
-    const histBody = document.getElementById('body-invhistory');
-    if (histBody && !histBody.classList.contains('open')) toggleCollapse('invhistory');
-    // Reload data in background — UI is already clear
-    loadAllData().catch(e => console.error('Background reload error:', e));
+    // Reload page after short delay — ensures invoice history, inventory and client data are all fresh
+    setTimeout(() => { window.location.reload(); }, 800);
   } catch(e) {
     showToast('⚠ ' + e.message); console.error(e);
+  } finally {
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save Invoice'; }
   }
 }
@@ -3650,7 +3635,9 @@ async function loadAllData() {
   const dot = document.getElementById('fbStatus');
   if (dot) dot.style.background = '#f5a623';
   try {
-    await Promise.all([loadCustomers(), loadInventory(), loadInvoices(), loadExpenses(), loadSettings()]);
+    // Load settings FIRST so calcTier uses correct thresholds when customer table renders
+    await loadSettings();
+    await Promise.all([loadCustomers(), loadInventory(), loadInvoices(), loadExpenses()]);
     refreshDashboard();
     if (dot) dot.style.background = '#4CAF50';
     showToast('✓ Ready');
@@ -3799,8 +3786,8 @@ function calcTier(spend, customerId) {
         .reduce((s,i) => s+(i.total||0), 0);
     }
   }
-  const platinum = t.platinum?.min || 15000;
-  const gold     = t.gold?.min     || 5000;
+  const platinum = t.platinum?.min ?? 15000;
+  const gold     = t.gold?.min     ?? 5000;
   return effectiveSpend >= platinum ? 'Platinum' : effectiveSpend >= gold ? 'Gold' : 'Silver';
 }
 
