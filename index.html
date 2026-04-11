@@ -595,7 +595,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <div style="display:flex;align-items:center;gap:10px;">
     <span style="font-size:11px;color:var(--gold-pale);opacity:0.8;" id="topDateTime"></span>
     <span id="fbStatus" title="Firebase status" style="width:8px;height:8px;border-radius:50%;background:#aaa;display:inline-block;" ></span>
-    <div style="width:32px;height:32px;background:var(--gold-mid);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--gold-dark);">SA</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="width:32px;height:32px;background:var(--gold-mid);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--gold-dark);">SA</div>
+      <button onclick="performLogout()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:var(--gold-pale);font-size:11px;font-weight:500;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:'Jost',sans-serif;" title="Logout">Logout</button>
+    </div>
   </div>
 </div>
 
@@ -3550,6 +3553,9 @@ let currentUser = null;
   if (window._firebaseOffline || typeof firebase === 'undefined') return;
   try {
     firebase.auth().onAuthStateChanged(async (fbUser) => {
+      // Only restore session if it was explicitly started by this app's doLogin
+      // (not from browser-saved passwords or external autofill)
+      if (!sessionStorage.getItem('kalu_app_session')) return;
       // Already logged in via doLogin — skip
       if (currentUser) return;
       if (!fbUser) return; // No session — stay on login screen
@@ -3637,6 +3643,7 @@ async function doLogin() {
     const sel = document.getElementById('permUserSelect');
     if (sel && currentUser.role === 'MasterAdmin') await refreshPermUserDropdown();
     window._loginAttempts = []; // clear on success
+    sessionStorage.setItem('kalu_app_session', '1'); // mark as app-initiated session
     showToast('Welcome, ' + currentUser.name);
     startInactivityWatcher();
     audit('Login', 'Signed in successfully');
@@ -4777,6 +4784,7 @@ function performLogout() {
   stopInactivityWatcher();
   currentUser = null;
   window._activePerms = new Set();
+  sessionStorage.removeItem('kalu_app_session'); // require fresh login after logout
   window.DB.authSignOut().catch(()=>{});
   document.querySelector('.topbar').style.top = '0';
   document.querySelector('.nav-tabs').style.top = '54px';
